@@ -1,6 +1,6 @@
-import React from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { LogOut, Settings, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { LogOut, Settings, X, UserSearch } from 'lucide-react';
 import iconDashboard from '../../assets/icon_dashboard.svg';
 import iconCalendar from '../../assets/icon_calendar.svg';
 import iconWarning from '../../assets/icon_warning.svg';
@@ -15,6 +15,22 @@ interface AdminSidebarProps {
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false, onClose }) => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   const handleLogout = () => {
     logout();
@@ -151,48 +167,82 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
         </nav>
       </div>
 
-      {/* Profile Box Admin di Bawah */}
-      <div className="px-3 pb-5 pt-3 flex items-center justify-between w-full border-t border-slate-100 bg-white">
-        <Link
-          to="/admin/profil"
-          onClick={onClose}
-          className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer min-w-0 flex-1 mr-1.5 group"
-          title="Buka Profil Admin"
-        >
+      {/* Profile Box Admin di Bawah: Display Info, Tombol Gerigi untuk Frame 37907 */}
+      <div className="relative px-3 pb-5 pt-3 flex items-center justify-between w-full border-t border-slate-100 bg-white">
+        <div className="flex items-center gap-2 min-w-0 flex-1 mr-1.5 select-none">
           <img
             src={iconAvatar}
             alt="Profile Avatar"
             className="w-[42px] h-[42px] rounded-full shrink-0"
           />
           <div className="flex flex-col min-w-0 pr-1">
-            <span className="font-['Poppins'] text-[12px] font-medium text-[#0B0C0F] group-hover:text-[#093697] transition leading-tight truncate">
+            <span className="font-['Poppins'] text-[12px] font-medium text-[#0B0C0F] leading-tight truncate">
               {currentUser?.name || 'Facility Admin'}
             </span>
             <span className="font-['Poppins'] text-[10.5px] text-[#727272] leading-tight mt-0.5 truncate">
               ID. {currentUser?.number_id || currentUser?.nim || 'Admin'}
             </span>
           </div>
-        </Link>
+        </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="relative shrink-0" ref={menuRef}>
           <button
-            onClick={() => {
-              if (onClose) onClose();
-              handleLogout();
-            }}
-            className="cursor-pointer text-[#727272] hover:text-rose-600 transition p-1.5 rounded-md hover:bg-rose-50 shrink-0"
-            title="Keluar / Ganti Akun"
+            type="button"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className={`cursor-pointer transition p-2 rounded-lg shrink-0 ${
+              isMenuOpen
+                ? 'bg-blue-50 text-[#093697]'
+                : 'text-[#454545] hover:text-[#093697] hover:bg-slate-100'
+            }`}
+            title="Pengaturan Admin"
+            aria-label="Pengaturan Admin"
+            aria-expanded={isMenuOpen}
           >
-            <LogOut className="w-4 h-4 shrink-0" />
+            <Settings className="w-[20px] h-[20px] shrink-0 stroke-[2]" />
           </button>
-          <Link
-            to="/admin/profil"
-            onClick={onClose}
-            className="cursor-pointer text-[#454545] hover:text-[#093697] transition p-1.5 rounded-md hover:bg-blue-50 shrink-0"
-            title="Pengaturan Profil Admin"
-          >
-            <Settings className="w-[19px] h-[19px] shrink-0 stroke-[2]" />
-          </Link>
+
+          {/* Frame 37907: Menu Popup Admin (Lihat Profil & Log Out) */}
+          {isMenuOpen && (
+            <div className="absolute bottom-[calc(100%+8px)] right-0 w-[190px] bg-white border border-[#BABABA] rounded-[14px] shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  if (onClose) onClose();
+                  navigate('/admin/profil');
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors group cursor-pointer"
+              >
+                <UserSearch
+                  className="w-5 h-5 text-[#333333] group-hover:text-[#093697] shrink-0 transition-colors"
+                  strokeWidth={1.8}
+                />
+                <span className="font-['Poppins'] text-[14px] font-medium text-[#333333] group-hover:text-[#093697] transition-colors">
+                  Lihat Profil
+                </span>
+              </button>
+
+              <div className="border-t border-[#BABABA]/50 w-full" />
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  if (onClose) onClose();
+                  handleLogout();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-rose-50 transition-colors group cursor-pointer"
+              >
+                <LogOut
+                  className="w-5 h-5 text-[#333333] group-hover:text-rose-600 shrink-0 transition-colors"
+                  strokeWidth={1.8}
+                />
+                <span className="font-['Poppins'] text-[14px] font-medium text-[#333333] group-hover:text-rose-600 transition-colors">
+                  Log Out
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

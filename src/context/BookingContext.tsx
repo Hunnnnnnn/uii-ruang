@@ -3,9 +3,6 @@ import { Booking, Room, DamageReport, BookingStatus } from '../types';
 import {
   MOCK_ROOMS,
   MOCK_USERS,
-  INITIAL_BOOKINGS,
-  INITIAL_DAMAGE_REPORTS,
-  PAST_ELIGIBLE_BOOKINGS,
 } from '../data/mockData';
 import { useAuth } from './AuthContext';
 import {
@@ -173,21 +170,15 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const map = new Map<number, Booking>();
-          PAST_ELIGIBLE_BOOKINGS.forEach((p) => map.set(p.id, p));
-          parsed
-            .filter((b: Booking) => b.id !== 102)
-            .map((b: any) => normalizeBookingItem(b, MOCK_ROOMS))
-            .forEach((b) => map.set(b.id, b));
-          return Array.from(map.values());
+          return parsed
+            .filter((b: any) => b.id < 900 && b.id !== 102 && !b.is_dummy)
+            .map((b: any) => normalizeBookingItem(b, MOCK_ROOMS));
         }
       } catch {
-        return PAST_ELIGIBLE_BOOKINGS;
+        return [];
       }
     }
-    return [...INITIAL_BOOKINGS, ...PAST_ELIGIBLE_BOOKINGS].map((b: any) =>
-      normalizeBookingItem(b, MOCK_ROOMS)
-    );
+    return [];
   });
 
   const [damageReports, setDamageReports] = useState<DamageReport[]>(() => {
@@ -196,14 +187,13 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          // Hanya simpan laporan riil pengguna (filter out id 1, 2, 3 dummy bawaan)
-          return parsed.filter((r: DamageReport) => r.id > 10);
+          return parsed.filter((r: any) => r.id > 10 && !r.is_dummy);
         }
       } catch {
         return [];
       }
     }
-    return INITIAL_DAMAGE_REPORTS;
+    return [];
   });
 
   const [activeFaculty, setActiveFaculty] = useState<string>('FTI');
@@ -214,53 +204,27 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       if (currentUser.role === 'admin') {
         const liveBookings = await adminBookingsApi.getAllBookings();
-        if (Array.isArray(liveBookings) && liveBookings.length > 0) {
+        if (Array.isArray(liveBookings)) {
           const normalized = liveBookings.map((b) => normalizeBookingItem(b, rooms));
-          const map = new Map<number, Booking>();
-          PAST_ELIGIBLE_BOOKINGS.forEach((p) => map.set(p.id, p));
-          normalized.forEach((b) => map.set(b.id, b));
-          setBookings(Array.from(map.values()));
+          setBookings(normalized);
         }
         const liveReports = await adminDamageReportsApi.getAllReports();
-        if (Array.isArray(liveReports) && liveReports.length > 0) {
+        if (Array.isArray(liveReports)) {
           setDamageReports(liveReports);
         }
       } else {
         const myBookings = await bookingsApi.getMyBookings();
-        const relevantPast = PAST_ELIGIBLE_BOOKINGS.filter(
-          (p) =>
-            p.user_id === currentUser.id ||
-            p.user?.nim === currentUser.nim ||
-            p.user?.email === currentUser.email
-        );
-        if (Array.isArray(myBookings) && myBookings.length > 0) {
+        if (Array.isArray(myBookings)) {
           const normalized = myBookings.map((b) => normalizeBookingItem(b, rooms));
-          setBookings((prev) => {
-            const map = new Map<number, Booking>();
-            relevantPast.forEach((p) => map.set(p.id, p));
-            normalized.forEach((b) => map.set(b.id, b));
-            prev.forEach((b) => {
-              if (!map.has(b.id)) map.set(b.id, b);
-            });
-            return Array.from(map.values());
-          });
-        } else if (relevantPast.length > 0) {
-          setBookings((prev) => {
-            const map = new Map<number, Booking>();
-            relevantPast.forEach((p) => map.set(p.id, p));
-            prev.forEach((b) => {
-              if (!map.has(b.id)) map.set(b.id, b);
-            });
-            return Array.from(map.values());
-          });
+          setBookings(normalized);
         }
         const myReports = await damageReportsApi.getMyReports();
-        if (Array.isArray(myReports) && myReports.length > 0) {
+        if (Array.isArray(myReports)) {
           setDamageReports(myReports);
         }
       }
     } catch (e) {
-      console.warn('Gagal memuat booking live dari backend:', e);
+      console.warn('Gagal memuat data live dari backend:', e);
     }
   };
 
