@@ -3,6 +3,7 @@ import { Booking, Room, DamageReport, BookingStatus } from '../types';
 import {
   MOCK_ROOMS,
   MOCK_USERS,
+  PAST_ELIGIBLE_BOOKINGS,
 } from '../data/mockData';
 import { useAuth } from './AuthContext';
 import {
@@ -165,20 +166,23 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
+    const map = new Map<number, Booking>();
+    PAST_ELIGIBLE_BOOKINGS.forEach((p) => map.set(p.id, p));
     const saved = localStorage.getItem('uiiruang_bookings');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed
-            .filter((b: any) => b.id < 900 && b.id !== 102 && !b.is_dummy)
-            .map((b: any) => normalizeBookingItem(b, MOCK_ROOMS));
+          parsed
+            .filter((b: any) => b.id !== 102 && !b.is_dummy)
+            .map((b: any) => normalizeBookingItem(b, MOCK_ROOMS))
+            .forEach((b: any) => map.set(b.id, b));
         }
       } catch {
-        return [];
+        // keep map defaults
       }
     }
-    return [];
+    return Array.from(map.values());
   });
 
   const [damageReports, setDamageReports] = useState<DamageReport[]>(() => {
@@ -206,7 +210,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const liveBookings = await adminBookingsApi.getAllBookings();
         if (Array.isArray(liveBookings)) {
           const normalized = liveBookings.map((b) => normalizeBookingItem(b, rooms));
-          setBookings(normalized);
+          const map = new Map<number, Booking>();
+          PAST_ELIGIBLE_BOOKINGS.forEach((p) => map.set(p.id, p));
+          normalized.forEach((b) => map.set(b.id, b));
+          setBookings(Array.from(map.values()));
         }
         const liveReports = await adminDamageReportsApi.getAllReports();
         if (Array.isArray(liveReports)) {
@@ -214,9 +221,22 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       } else {
         const myBookings = await bookingsApi.getMyBookings();
+        const relevantPast = PAST_ELIGIBLE_BOOKINGS.filter(
+          (p) =>
+            p.user_id === currentUser.id ||
+            p.user?.id === currentUser.id ||
+            String(p.user?.nim) === String(currentUser.nim) ||
+            String(p.user?.number_id) === String(currentUser.number_id) ||
+            p.user?.email === currentUser.email
+        );
         if (Array.isArray(myBookings)) {
           const normalized = myBookings.map((b) => normalizeBookingItem(b, rooms));
-          setBookings(normalized);
+          const map = new Map<number, Booking>();
+          relevantPast.forEach((p) => map.set(p.id, p));
+          normalized.forEach((b) => map.set(b.id, b));
+          setBookings(Array.from(map.values()));
+        } else if (relevantPast.length > 0) {
+          setBookings(relevantPast);
         }
         const myReports = await damageReportsApi.getMyReports();
         if (Array.isArray(myReports)) {

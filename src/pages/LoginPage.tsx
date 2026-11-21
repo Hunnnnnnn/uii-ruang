@@ -115,7 +115,11 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="flex flex-col lg:flex-row w-full min-h-screen bg-white select-none font-['Poppins']">
       {/* ================= SISI KIRI: BRANDING HERO (Figma Exact 100%) ================= */}
-      <div className="w-full lg:w-[50%] xl:w-[50%] bg-gradient-to-b from-[#043AB8] via-[#01287B] to-[#00113C] text-white p-8 sm:p-12 lg:px-14 lg:pt-24 lg:pb-12 xl:px-16 xl:pt-28 xl:pb-14 flex flex-col justify-between relative overflow-hidden shrink-0 min-h-[520px] lg:min-h-screen">
+      <div className="w-full lg:w-[50%] xl:w-[50%] bg-gradient-to-b from-[#043AB8] via-[#01287B] to-[#001444] text-white p-8 sm:p-12 lg:px-14 lg:pt-20 lg:pb-12 xl:px-16 xl:pt-24 xl:pb-14 flex flex-col justify-between relative overflow-hidden shrink-0 min-h-[520px] lg:min-h-screen">
+        {/* Subtle Ambient Glow untuk Kedalaman Kontras */}
+        <div className="absolute -bottom-16 -left-16 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/3 -right-20 w-72 h-72 bg-blue-400/15 rounded-full blur-3xl pointer-events-none" />
+
         {/* Brand Header */}
         <div className="relative z-10">
           <div className="flex items-center gap-1.5">
@@ -133,15 +137,17 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* 3 Core Value Bullet Points */}
-        <div className="space-y-6 sm:space-y-7 relative z-10 my-10 lg:my-14">
+        <div className="space-y-6 sm:space-y-7 relative z-10 my-8 lg:my-12">
           {/* Point 1: Anti Bentrok Jadwal */}
           <div className="flex items-start gap-4">
-            <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7 text-[#ECCA2E] shrink-0 mt-0.5" strokeWidth={2.2} />
+            <div className="w-10 h-10 rounded-full bg-white/10 border border-white/15 flex items-center justify-center shrink-0 mt-0.5">
+              <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-[#ECCA2E]" strokeWidth={2.4} />
+            </div>
             <div>
               <h3 className="font-['Poppins'] text-[17px] sm:text-[18px] font-semibold text-white leading-snug">
                 Anti Bentrok Jadwal
               </h3>
-              <p className="font-['Poppins'] text-[13.5px] sm:text-[14.5px] text-white/80 mt-0.5 leading-snug">
+              <p className="font-['Poppins'] text-[13.5px] sm:text-[14.5px] text-blue-100/90 mt-0.5 leading-snug">
                 Jadwal ruang terlihat jelas saat booking.
               </p>
             </div>
@@ -149,12 +155,14 @@ export const LoginPage: React.FC = () => {
 
           {/* Point 2: Credit Score Transparan */}
           <div className="flex items-start gap-4">
-            <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7 text-[#ECCA2E] shrink-0 mt-0.5" strokeWidth={2.2} />
+            <div className="w-10 h-10 rounded-full bg-white/10 border border-white/15 flex items-center justify-center shrink-0 mt-0.5">
+              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-[#ECCA2E]" strokeWidth={2.4} />
+            </div>
             <div>
               <h3 className="font-['Poppins'] text-[17px] sm:text-[18px] font-semibold text-white leading-snug">
                 Credit Score Transparan
               </h3>
-              <p className="font-['Poppins'] text-[13.5px] sm:text-[14.5px] text-white/80 mt-0.5 leading-snug">
+              <p className="font-['Poppins'] text-[13.5px] sm:text-[14.5px] text-blue-100/90 mt-0.5 leading-snug">
                 Bangun reputasi dengan check in tepat waktu.
               </p>
             </div>
@@ -162,35 +170,33 @@ export const LoginPage: React.FC = () => {
 
           {/* Point 3: Terhubung dengan Fasilitas UII */}
           <div className="flex items-start gap-4">
-            <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-[#ECCA2E] shrink-0 mt-0.5" strokeWidth={2.2} />
+            <div className="w-10 h-10 rounded-full bg-white/10 border border-white/15 flex items-center justify-center shrink-0 mt-0.5">
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-[#ECCA2E]" strokeWidth={2.4} />
+            </div>
             <div>
               <h3 className="font-['Poppins'] text-[17px] sm:text-[18px] font-semibold text-white leading-snug">
                 Terhubung dengan Fasilitas UII
               </h3>
-              <p className="font-['Poppins'] text-[13.5px] sm:text-[14.5px] text-white/80 mt-0.5 leading-snug">
+              <p className="font-['Poppins'] text-[13.5px] sm:text-[14.5px] text-blue-100/90 mt-0.5 leading-snug">
                 Temukan ruang sesuai fakultas dan fasilitas.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Footer Brand Badges (UII Informatika + We Are IT Solution Enablers) */}
-        <div className="flex items-center gap-7 sm:gap-9 pt-8 relative z-10 mt-auto justify-start">
-          {/* UII Informatika Logo */}
-          <div className="flex items-center">
+        {/* Footer Brand Badges dengan Card Putih Berkontras Tinggi */}
+        <div className="flex items-center pt-6 relative z-10 mt-auto justify-start">
+          <div className="inline-flex items-center gap-4 sm:gap-5 bg-white/95 backdrop-blur-md px-4 sm:px-5 py-2.5 rounded-[14px] shadow-lg border border-white/40">
             <img
               src={logoInformatika}
               alt="Program Studi Informatika Program Sarjana UII"
-              className="h-[46px] sm:h-[54px] lg:h-[60px] w-auto object-contain"
+              className="h-[38px] sm:h-[44px] w-auto object-contain"
             />
-          </div>
-
-          {/* We are IT Solution Enablers Logo */}
-          <div className="flex items-center">
+            <div className="h-7 w-[1.5px] bg-[#E2E8F0]" />
             <img
               src={logoITSolution}
               alt="We are IT Solution Enablers"
-              className="h-[42px] sm:h-[48px] lg:h-[54px] w-auto object-contain"
+              className="h-[34px] sm:h-[38px] w-auto object-contain"
             />
           </div>
         </div>

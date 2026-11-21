@@ -290,7 +290,80 @@ export const MOCK_ROOMS: Room[] = [
 
 export const INITIAL_BOOKINGS: Booking[] = [];
 
-// Riwayat peminjaman kosong (semua dummy dihilangkan sesuai permintaan pengguna)
-export const PAST_ELIGIBLE_BOOKINGS: Booking[] = [];
+// 1 dummy peminjaman lampau per akun (sudah selesai / lewat tanggalnya) untuk lolos pengecekan eligibilitas pengaduan fasilitas & riwayat profil
+export const PAST_ELIGIBLE_BOOKINGS: Booking[] = [
+  {
+    id: 901,
+    user_id: 7, // Akun 'tes' (NIM 24523001)
+    user: {
+      id: 7,
+      name: 'tes',
+      nim: '24523001',
+      number_id: '24523001',
+      email: '24523001@students.uii.ac.id',
+      role: 'mahasiswa',
+      credit_score: 100,
+      status: 'aktif',
+    },
+    room_id: 1, // FTI - 3.14 (IFP)
+    room: MOCK_ROOMS[0],
+    date: '2026-11-20',
+    daily_start_hour: 8,
+    daily_end_hour: 10,
+    start_at: '2026-11-20T08:00:00+07:00',
+    end_at: '2026-11-20T10:00:00+07:00',
+    purpose: 'Kuliah Pemrograman dan Praktikum IFP',
+    status: 'disetujui',
+    created_at: '2026-11-15T08:00:00+07:00',
+  },
+  {
+    id: 902,
+    user_id: 1, // Akun 'Thahir Al Faruq' (NIM 24523014)
+    user: {
+      id: 1,
+      name: 'Thahir Al Faruq',
+      nim: '24523014',
+      number_id: '24523014',
+      email: '24523014@students.uii.ac.id',
+      role: 'mahasiswa',
+      credit_score: 100,
+      status: 'aktif',
+    },
+    room_id: 1, // FTI - 3.14 (IFP)
+    room: MOCK_ROOMS[0],
+    date: '2026-11-20',
+    daily_start_hour: 10,
+    daily_end_hour: 12,
+    start_at: '2026-11-20T10:00:00+07:00',
+    end_at: '2026-11-20T12:00:00+07:00',
+    purpose: 'Sesi Praktikum Mahasiswa',
+    status: 'disetujui',
+    created_at: '2026-11-15T10:00:00+07:00',
+  },
+  {
+    id: 903,
+    user_id: 2, // Akun 'Raihan Arhab' (NIM 22523001 / 23523004)
+    user: {
+      id: 2,
+      name: 'Raihan Arhab',
+      nim: '22523001',
+      number_id: '22523001',
+      email: '22523001@students.uii.ac.id',
+      role: 'mahasiswa',
+      credit_score: 75,
+      status: 'peringatan',
+    },
+    room_id: 1, // FTI - 3.14 (IFP)
+    room: MOCK_ROOMS[0],
+    date: '2026-11-20',
+    daily_start_hour: 13,
+    daily_end_hour: 15,
+    start_at: '2026-11-20T13:00:00+07:00',
+    end_at: '2026-11-20T15:00:00+07:00',
+    purpose: 'Sesi Praktikum Mahasiswa',
+    status: 'disetujui',
+    created_at: '2026-11-15T13:00:00+07:00',
+  },
+];
 
 export const INITIAL_DAMAGE_REPORTS: DamageReport[] = [];
