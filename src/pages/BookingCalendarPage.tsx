@@ -597,7 +597,7 @@ export const BookingCalendarPage: React.FC = () => {
             )}
 
             {/* 4 Cards Layout: 2 Kolom Seimbang (Kiri: Kalender + Dokumen, Kanan: Ketersediaan + Detail) */}
-            <form onSubmit={handleSubmitBooking} className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
+            <form onSubmit={handleSubmitBooking} className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8 w-full">
               {/* ================= SISI KIRI ================= */}
               <div className="flex flex-col gap-8 w-full">
                 {/* CARD 1: November 2026 Kalender Bulan */}
@@ -759,10 +759,10 @@ export const BookingCalendarPage: React.FC = () => {
               {/* ================= SISI KANAN ================= */}
               <div className="flex flex-col gap-8 w-full">
                 {/* CARD 3: Ketersediaan Jadwal (Tiap Jam 07:00 - 22:00, Tanpa Data Dummy) */}
-                <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-4 sm:p-7 shadow-xs">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="font-['Poppins'] font-semibold text-[18px] text-[#0B0C0F]">
+                <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-4 sm:p-7 shadow-xs overflow-hidden">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+                    <div className="min-w-0">
+                      <h3 className="font-['Poppins'] font-semibold text-[18px] text-[#0B0C0F] leading-tight">
                         Ketersediaan Jadwal
                       </h3>
                       <p className="text-[12px] text-[#727272] mt-0.5 font-['Poppins']">
@@ -770,19 +770,19 @@ export const BookingCalendarPage: React.FC = () => {
                       </p>
                     </div>
                     {isLoadingSlots ? (
-                      <span className="text-[12px] text-[#727272] animate-pulse font-['Poppins']">
+                      <span className="text-[12px] text-[#727272] animate-pulse font-['Poppins'] shrink-0">
                         Memuat data...
                       </span>
                     ) : (
-                      <div className="flex items-center gap-3 text-[11px] font-['Poppins']">
-                        <span className="flex items-center gap-1 text-[#166534]">
-                          <span className="w-2.5 h-2.5 rounded-full bg-[#16A34A]"></span> Kosong
+                      <div className="flex items-center flex-wrap gap-2.5 sm:gap-3 text-[11px] sm:text-[11.5px] font-['Poppins'] shrink-0 pt-0.5">
+                        <span className="inline-flex items-center gap-1.5 text-[#166534] font-medium whitespace-nowrap">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#16A34A] shrink-0"></span> Kosong
                         </span>
-                        <span className="flex items-center gap-1 text-[#854D0E]">
-                          <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308]"></span> Menunggu
+                        <span className="inline-flex items-center gap-1.5 text-[#854D0E] font-medium whitespace-nowrap">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#EAB308] shrink-0"></span> Menunggu
                         </span>
-                        <span className="flex items-center gap-1 text-[#991B1B]">
-                          <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]"></span> Terpakai
+                        <span className="inline-flex items-center gap-1.5 text-[#991B1B] font-medium whitespace-nowrap">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626] shrink-0"></span> Terpakai
                         </span>
                       </div>
                     )}
