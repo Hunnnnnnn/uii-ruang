@@ -63,18 +63,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
                 {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#093697] rounded-r-[8px]" />
                 )}
-                <div className="flex items-center gap-[16px] pl-[24px] lg:pl-[28px]">
+                <div className="flex items-center gap-[14px] pl-[20px] lg:pl-[24px] pr-3">
                   <img
                     src={iconDashboard}
                     alt=""
-                    className="w-[24px] h-[24px] shrink-0"
+                    className="w-[22px] h-[22px] shrink-0"
                     style={{
                       filter: isActive
                         ? 'none'
                         : 'grayscale(100%) opacity(0.6)',
                     }}
                   />
-                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal">
+                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal whitespace-nowrap">
                     Dashboard
                   </span>
                 </div>
@@ -97,18 +97,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
                 {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#093697] rounded-r-[8px]" />
                 )}
-                <div className="flex items-center gap-[16px] pl-[24px] lg:pl-[28px]">
+                <div className="flex items-center gap-[14px] pl-[20px] lg:pl-[24px] pr-3">
                   <img
                     src={iconCalendar}
                     alt=""
-                    className="w-[24px] h-[24px] shrink-0"
+                    className="w-[22px] h-[22px] shrink-0"
                     style={{
                       filter: isActive
                         ? 'invert(16%) sepia(85%) saturate(3040%) hue-rotate(217deg) brightness(91%) contrast(98%)'
                         : 'none',
                     }}
                   />
-                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal">
+                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal whitespace-nowrap">
                     Peminjaman Ruangan
                   </span>
                 </div>
@@ -116,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
             )}
           </NavLink>
 
-          {/* 3. Pengaduan Fasilitas */}
+          {/* 3. Pengaduan Fasilitas (Bebas tabrakan border) */}
           <NavLink
             to="/pengaduan"
             onClick={onClose}
@@ -131,18 +131,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
                 {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#093697] rounded-r-[8px]" />
                 )}
-                <div className="flex items-center gap-[16px] pl-[24px] lg:pl-[28px]">
+                <div className="flex items-center gap-[14px] pl-[20px] lg:pl-[24px] pr-3">
                   <img
                     src={iconWarning}
                     alt=""
-                    className="w-[24px] h-[24px] shrink-0"
+                    className="w-[22px] h-[22px] shrink-0"
                     style={{
                       filter: isActive
                         ? 'invert(16%) sepia(85%) saturate(3040%) hue-rotate(217deg) brightness(91%) contrast(98%)'
                         : 'none',
                     }}
                   />
-                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal">
+                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal whitespace-nowrap">
                     Pengaduan Fasilitas
                   </span>
                 </div>
@@ -202,7 +202,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
   return (
     <>
       {/* 1. Tampilan Desktop: Sticky top-0 h-screen, tidak terpotong saat scroll */}
-      <aside className="hidden lg:flex w-[256px] min-w-[256px] sticky top-0 h-screen bg-white flex-col justify-between border-r border-[#E2E8F0] select-none z-20 shrink-0">
+      <aside className="hidden lg:flex w-[275px] min-w-[275px] sticky top-0 h-screen bg-white flex-col justify-between border-r border-[#E2E8F0] select-none z-20 shrink-0">
         {navContent}
       </aside>
 

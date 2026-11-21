@@ -183,17 +183,13 @@ export const PengaduanFasilitasPage: React.FC = () => {
                 {MOCK_FACULTIES.map((fac) => (
                   <button
                     key={fac.id}
+                    type="button"
                     onClick={() => handleSelectFaculty(fac.id)}
-                    className="bg-[#093697] hover:bg-[#072a78] text-white h-[140px] sm:h-[150px] lg:h-[160px] rounded-[18px] lg:rounded-[22px] flex flex-col items-center justify-center transition-all duration-200 shadow-sm hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 cursor-pointer"
+                    className="bg-[#093697] hover:bg-[#072a78] text-white h-[140px] sm:h-[150px] lg:h-[160px] rounded-[18px] lg:rounded-[22px] flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-xl transform hover:-translate-y-1 active:translate-y-0 cursor-pointer"
                   >
                     <span className="font-['Poppins'] text-[32px] sm:text-[36px] font-bold leading-none">
                       {fac.name}
                     </span>
-                    {fac.desc && (
-                      <span className="font-['Poppins'] text-[12px] sm:text-[13px] text-white/80 mt-2 font-normal">
-                        {fac.desc}
-                      </span>
-                    )}
                   </button>
                 ))}
               </div>
