@@ -95,11 +95,11 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <div className="bg-[#F5F8FF] min-h-screen w-full select-none">
-      {/* Container utama dengan padding-top bernapas lega */}
-      <div className="pt-[88px] px-8 lg:px-12 pb-16 w-full">
+      {/* Container utama responsif */}
+      <div className="pt-6 sm:pt-8 lg:pt-[88px] px-4 sm:px-6 lg:px-12 pb-16 w-full">
         {/* Header Row: Judul di kiri, Tanggal di kanan */}
-        <div className="flex items-center justify-between w-full">
-          <h1 className="font-['Poppins'] font-bold text-[32px] text-[#093697] leading-none">
+        <div className="flex flex-row items-center justify-between w-full gap-2 mb-6 sm:mb-8">
+          <h1 className="font-['Poppins'] font-bold text-[24px] sm:text-[32px] text-[#093697] leading-none truncate">
             Profil
           </h1>
 
@@ -108,11 +108,11 @@ export const ProfilePage: React.FC = () => {
         </div>
 
         {/* 2 Kolom Layout Sesuai Figma: Kiri Profil (~380px), Kanan Riwayat Peminjaman Lebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 w-full">
           {/* ================= SISI KIRI (Informasi Akun + Hubungi Admin) ================= */}
           <div className="lg:col-span-4 xl:col-span-4 flex flex-col gap-6">
             {/* Card 1: Informasi Akun */}
-            <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-7 shadow-xs">
+            <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-5 sm:p-7 shadow-xs">
               {/* Profile Avatar */}
               <div className="mb-3">
                 <img

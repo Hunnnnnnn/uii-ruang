@@ -347,14 +347,11 @@ export const BookingCalendarPage: React.FC = () => {
 
   return (
     <div className="bg-[#F5F8FF] min-h-screen w-full select-none">
-      {/* 
-        Container dengan padding-top diturunkan (pt-[88px] px-8 lg:px-12 pb-16) 
-        agar posisi header turun dan bernapas lega persis desain Figma
-      */}
-      <div className="pt-[88px] px-8 lg:px-12 pb-16 w-full">
+      {/* Container utama responsif */}
+      <div className="pt-6 sm:pt-8 lg:pt-[88px] px-4 sm:px-6 lg:px-12 pb-16 w-full">
         {/* Header Row: Judul di kiri, Tanggal di kanan */}
-        <div className="flex items-center justify-between w-full mb-6">
-          <h1 className="font-['Poppins'] font-bold text-[32px] text-[#093697] leading-none">
+        <div className="flex flex-row items-center justify-between w-full mb-6 gap-2">
+          <h1 className="font-['Poppins'] font-bold text-[24px] sm:text-[32px] text-[#093697] leading-none truncate">
             Peminjaman Ruangan
           </h1>
 
@@ -604,7 +601,7 @@ export const BookingCalendarPage: React.FC = () => {
               {/* ================= SISI KIRI ================= */}
               <div className="flex flex-col gap-8 w-full">
                 {/* CARD 1: November 2026 Kalender Bulan */}
-                <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-7 shadow-xs">
+                <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-4 sm:p-7 shadow-xs">
                   {/* Month Header: November 2026 + Nav Buttons */}
                   <div className="flex items-center justify-between mb-6">
                     <span className="font-['Poppins'] font-semibold text-[18px] text-[#0B0C0F]">
@@ -702,7 +699,7 @@ export const BookingCalendarPage: React.FC = () => {
                 </div>
 
                 {/* CARD 2: Dokumen Persyaratan */}
-                <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-7 shadow-xs">
+                <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-4 sm:p-7 shadow-xs">
                   <h3 className="font-['Poppins'] font-semibold text-[18px] text-[#0B0C0F] mb-4">
                     Dokumen Persyaratan
                   </h3>
@@ -762,7 +759,7 @@ export const BookingCalendarPage: React.FC = () => {
               {/* ================= SISI KANAN ================= */}
               <div className="flex flex-col gap-8 w-full">
                 {/* CARD 3: Ketersediaan Jadwal (Tiap Jam 07:00 - 22:00, Tanpa Data Dummy) */}
-                <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-7 shadow-xs">
+                <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-4 sm:p-7 shadow-xs">
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="font-['Poppins'] font-semibold text-[18px] text-[#0B0C0F]">
@@ -850,7 +847,7 @@ export const BookingCalendarPage: React.FC = () => {
                 </div>
 
                 {/* CARD 4: Detail Peminjaman */}
-                <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-7 shadow-xs">
+                <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-4 sm:p-7 shadow-xs">
                   <h3 className="font-['Poppins'] font-semibold text-[18px] text-[#0B0C0F] mb-4">
                     Detail Peminjaman
                   </h3>

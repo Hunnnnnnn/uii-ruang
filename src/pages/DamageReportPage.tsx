@@ -62,10 +62,10 @@ export const DamageReportPage: React.FC = () => {
   return (
     <div className="bg-[#F5F8FF] min-h-screen w-full select-none">
       {/* Full Screen Responsive Content Wrapper */}
-      <div className="pt-[88px] px-8 lg:px-12 pb-16 w-full">
+      <div className="pt-6 sm:pt-8 lg:pt-[88px] px-4 sm:px-6 lg:px-12 pb-16 w-full">
         {/* Header Row: Full width with Title (left) & Date Pill (right) */}
-        <div className="flex items-center justify-between w-full mb-8">
-          <h1 className="font-['Poppins'] font-bold text-[32px] text-[#093697] leading-none">
+        <div className="flex flex-row items-center justify-between w-full mb-6 sm:mb-8 gap-2">
+          <h1 className="font-['Poppins'] font-bold text-[24px] sm:text-[32px] text-[#093697] leading-none truncate">
             Laporan Kerusakan
           </h1>
 

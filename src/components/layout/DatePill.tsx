@@ -15,7 +15,7 @@ export const DatePill: React.FC<DatePillProps> = ({
   dateText,
   includeWeekday = false,
   className = '',
-  textClassName = "font-['Poppins'] font-normal text-[14px] text-[#727272] leading-none",
+  textClassName = "font-['Poppins'] font-normal text-[12px] sm:text-[14px] text-[#727272] leading-none whitespace-nowrap",
 }) => {
   const formatCurrentDate = () => {
     if (dateText) return dateText;
@@ -46,7 +46,7 @@ export const DatePill: React.FC<DatePillProps> = ({
 
   return (
     <div
-      className={`bg-white border border-[#BABABA] rounded-full px-6 h-[32px] flex items-center justify-center shadow-xs ${className}`}
+      className={`bg-white border border-[#BABABA] rounded-full px-3 sm:px-6 h-[28px] sm:h-[32px] shrink-0 flex items-center justify-center shadow-xs whitespace-nowrap ${className}`}
     >
       <span className={textClassName}>
         {currentDate}

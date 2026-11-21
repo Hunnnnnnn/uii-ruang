@@ -108,10 +108,10 @@ export const AdminDashboardPage: React.FC = () => {
   return (
     <div className="bg-[#F5F8FF] min-h-screen w-full select-none">
       {/* Full Screen Responsive Content Wrapper */}
-      <div className="pt-[88px] px-8 lg:px-12 pb-16 w-full">
+      <div className="pt-6 sm:pt-8 lg:pt-[88px] px-4 sm:px-6 lg:px-12 pb-16 w-full">
         {/* Header Row: Full width with Title (left) & Date Pill (right) */}
-        <div className="flex items-center justify-between w-full mb-8">
-          <h1 className="font-['Poppins'] font-bold text-[32px] text-[#093697] leading-none">
+        <div className="flex flex-row items-center justify-between w-full mb-6 sm:mb-8 gap-2">
+          <h1 className="font-['Poppins'] font-bold text-[24px] sm:text-[32px] text-[#093697] leading-none truncate">
             Dashboard Admin
           </h1>
 
@@ -120,27 +120,27 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         {/* 2 Main Columns Layout: Left Content (flex-1) & Right Content (w-[400px]-w-[420px]) */}
-        <div className="flex flex-col xl:flex-row items-stretch gap-8 w-full">
+        <div className="flex flex-col xl:flex-row items-stretch gap-6 lg:gap-8 w-full">
           {/* SISI KIRI (Fills remaining width) */}
           <div className="flex-1 w-full min-w-0 flex flex-col justify-between">
             <div>
               {/* 1. Hero Card: Halo, Admin (Full width of left column, matching Figma) */}
               <div
-                className="w-full h-[155px] rounded-[16px] relative overflow-hidden mb-6 shadow-sm"
+                className="w-full h-[140px] sm:h-[155px] rounded-[16px] relative overflow-hidden mb-6 shadow-sm"
                 style={{
                   backgroundImage:
                     'linear-gradient(87.09deg, rgb(1, 33, 101) 1.16%, rgb(9, 54, 151) 50.34%, rgb(36, 92, 132) 99.52%)',
                 }}
               >
                 {/* Teks Sisi Kiri: Clean "Halo, Admin" without extra subtext */}
-                <div className="absolute left-8 top-1/2 -translate-y-1/2 text-white z-10">
-                  <h2 className="font-['Poppins'] font-semibold text-[34px] leading-tight">
+                <div className="absolute left-5 sm:left-8 top-1/2 -translate-y-1/2 text-white z-10">
+                  <h2 className="font-['Poppins'] font-semibold text-[26px] sm:text-[34px] leading-tight">
                     Halo, <span className="text-[#ECCA2E]">Admin</span>
                   </h2>
                 </div>
 
                 {/* Ilustrasi Isometrik Sisi Kanan */}
-                <div className="absolute right-0 top-0 h-full w-[360px] opacity-90 pointer-events-none">
+                <div className="absolute right-0 top-0 h-full w-[200px] sm:w-[360px] opacity-35 sm:opacity-90 pointer-events-none">
                   <img
                     src={card1HeroImg}
                     alt="Ruang UII"

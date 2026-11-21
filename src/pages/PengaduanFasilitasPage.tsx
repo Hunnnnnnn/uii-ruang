@@ -160,10 +160,10 @@ export const PengaduanFasilitasPage: React.FC = () => {
 
   return (
     <div className="bg-[#F5F8FF] min-h-screen w-full select-none">
-      <div className="pt-[88px] px-8 lg:px-12 pb-16 w-full">
-        {/* Header Row: Judul di kiri, Tanggal Real-time di kanan persis Figma */}
-        <div className="flex items-center justify-between w-full mb-6">
-          <h1 className="font-['Poppins'] font-bold text-[32px] text-[#093697] leading-none">
+      <div className="pt-6 sm:pt-8 lg:pt-[88px] px-4 sm:px-6 lg:px-12 pb-16 w-full">
+        {/* Header Row: Judul di kiri, Tanggal Real-time di kanan */}
+        <div className="flex flex-row items-center justify-between w-full mb-6 gap-2">
+          <h1 className="font-['Poppins'] font-bold text-[24px] sm:text-[32px] text-[#093697] leading-none truncate">
             Pengaduan Fasilitas
           </h1>
 

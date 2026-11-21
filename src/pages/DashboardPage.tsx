@@ -54,11 +54,11 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="bg-[#F5F8FF] min-h-screen w-full select-none">
-      {/* Full Screen Responsive Content Wrapper dengan pt-[88px] konsisten Figma */}
-      <div className="pt-[88px] px-8 lg:px-12 pb-16 w-full">
+      {/* Full Screen Responsive Content Wrapper */}
+      <div className="pt-6 sm:pt-8 lg:pt-[88px] px-4 sm:px-6 lg:px-12 pb-16 w-full">
         {/* Header Row: Full width with Title (left) & Date Pill (right) */}
-        <div className="flex items-center justify-between w-full mb-8">
-          <h1 className="font-['Poppins'] font-bold text-[32px] text-[#093697] leading-none">
+        <div className="flex flex-row items-center justify-between w-full mb-6 sm:mb-8 gap-2">
+          <h1 className="font-['Poppins'] font-bold text-[24px] sm:text-[32px] text-[#093697] leading-none truncate">
             Dashboard
           </h1>
 
@@ -67,59 +67,59 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Row 2 Kartu Utama: Responsive Grid stretching 100% full width */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full mb-8">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 sm:gap-6 w-full mb-8">
           {/* Card 1: Halo Thahir */}
           <div
-            className="w-full h-[194px] rounded-[16px] relative overflow-hidden shadow-sm"
+            className="w-full min-h-[170px] sm:h-[194px] rounded-[16px] relative overflow-hidden shadow-sm flex items-center"
             style={{
               backgroundImage:
                 'linear-gradient(87.09deg, rgb(1, 33, 101) 1.16%, rgb(9, 54, 151) 50.34%, rgb(36, 92, 132) 99.52%)',
             }}
           >
-            {/* Teks Sisi Kiri */}
-            <div className="absolute left-8 top-10 w-[240px] flex flex-col items-start text-white z-10">
-              <h2 className="font-['Poppins'] font-semibold text-[32px] leading-tight">
+            {/* Teks Sisi Kiri (Responsif, tidak tertutup ilustrasi) */}
+            <div className="relative z-10 pl-5 sm:pl-8 py-5 pr-2 max-w-[210px] sm:max-w-[260px] flex flex-col items-start text-white">
+              <h2 className="font-['Poppins'] font-semibold text-[24px] sm:text-[32px] leading-tight">
                 Halo,{' '}
                 <span className="text-[#ECCA2E]">
                   {currentUser?.name?.split(' ')[0] || 'Thahir'}
                 </span>
               </h2>
-              <p className="font-['Poppins'] font-normal text-[15px] text-white/95 leading-snug mt-1.5">
+              <p className="font-['Poppins'] font-normal text-[13px] sm:text-[15px] text-white/95 leading-snug mt-1.5">
                 Cek ruangan yang tersedia, ajukan peminjaman
               </p>
             </div>
 
-            {/* Ilustrasi Isometrik Sisi Kanan */}
-            <div className="absolute right-2 top-2 h-[180px] w-[260px] pointer-events-none">
+            {/* Ilustrasi Isometrik Sisi Kanan (Adaptif di mobile) */}
+            <div className="absolute -right-3 sm:right-2 top-1/2 -translate-y-1/2 h-[150px] sm:h-[180px] w-[180px] sm:w-[260px] pointer-events-none opacity-35 sm:opacity-100 transition-opacity">
               <img
                 src={card1HeroImg}
                 alt="Ruang UII"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain sm:object-cover object-right"
               />
             </div>
           </div>
 
           {/* Card 2: Skor Kepatuhan Peminjaman */}
-          <div className="w-full h-[194px] rounded-[16px] bg-[#C1EBE9] relative overflow-hidden flex items-center justify-between px-8 shadow-sm">
+          <div className="w-full min-h-[170px] sm:h-[194px] rounded-[16px] bg-[#C1EBE9] relative overflow-hidden flex items-center justify-between px-4 sm:px-8 py-4 sm:py-0 gap-3 sm:gap-6 shadow-sm">
             {/* Medali Sisi Kiri */}
-            <div className="relative shrink-0 w-[180px] h-[180px] flex items-center justify-center">
+            <div className="relative shrink-0 w-[95px] h-[95px] sm:w-[150px] sm:h-[150px] flex items-center justify-center">
               <img
                 src={card2MedalSvg}
                 alt="Medali Kepatuhan"
-                className="w-[150px] h-[150px] block"
+                className="w-full h-full object-contain block"
               />
             </div>
 
-            {/* Teks & Skor Sisi Kanan */}
-            <div className="w-[260px] flex flex-col items-start shrink-0">
-              <span className="font-['Poppins'] font-semibold text-[16px] text-[#093697]">
+            {/* Teks & Skor Sisi Kanan (Flex-1 responsif tanpa overflow/cut-off) */}
+            <div className="flex-1 min-w-0 flex flex-col items-start pr-1 sm:pr-0">
+              <span className="font-['Poppins'] font-semibold text-[13px] sm:text-[16px] text-[#093697] truncate w-full">
                 Skor Kepatuhan Peminjaman
               </span>
-              <span className="font-['Poppins'] font-semibold text-[64px] text-[#093697] leading-none my-1">
+              <span className="font-['Poppins'] font-semibold text-[42px] sm:text-[64px] text-[#093697] leading-none my-0.5 sm:my-1">
                 {currentUser?.credit_score ?? 100}%
               </span>
-              <div className="bg-[#F2F7A0] rounded-[16px] py-[6px] w-full text-center shadow-xs">
-                <span className="font-['Poppins'] font-semibold text-[15px] text-[#093697]">
+              <div className="bg-[#F2F7A0] rounded-[12px] sm:rounded-[16px] py-1 sm:py-[6px] px-2.5 sm:px-3 w-full max-w-[230px] text-center shadow-xs">
+                <span className="font-['Poppins'] font-semibold text-[12px] sm:text-[15px] text-[#093697] truncate block">
                   {(currentUser?.credit_score ?? 100) >= 80 ? 'Sangat Baik!!' : 'Perlu Ditingkatkan'}
                 </span>
               </div>
@@ -130,7 +130,7 @@ export const DashboardPage: React.FC = () => {
         {/* Section: Peminjaman Aktif */}
         <div className="w-full">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-['Poppins'] font-normal text-[20px] text-[#0B0C0F]">
+            <h3 className="font-['Poppins'] font-normal text-[18px] sm:text-[20px] text-[#0B0C0F]">
               Peminjaman Aktif
             </h3>
             {activeBookings.length > 0 && (
