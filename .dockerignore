@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-ssr
+.git
+.gitignore
+.dockerignore
+README.md
+npm-debug.log
+yarn-error.log
+.vscode
+.idea

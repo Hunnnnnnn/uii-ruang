@@ -1,0 +1,13 @@
+services:
+  uiiruang-fe:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://100.73.128.8:8085/api/v1
+    container_name: uiiruang-frontend
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
