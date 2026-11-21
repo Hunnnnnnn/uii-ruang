@@ -40,8 +40,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
   const navContent = (
     <div className="flex flex-col justify-between h-full w-full">
       <div className="w-full">
-        {/* Brand Logo UIIRuang: x=12px, y=69px, w=169px, h=47px */}
-        <div className="pt-[48px] lg:pt-[69px] pl-[20px] lg:pl-[12px] h-[110px] lg:h-[140px] flex items-center justify-between pr-4">
+        {/* Brand Logo UIIRuang: Posisi rapi dekat atas */}
+        <div className="pt-6 lg:pt-8 pl-6 h-[85px] lg:h-[100px] flex items-center justify-between pr-4">
           <div className="flex items-center">
             <span className="font-['Poppins'] text-[32px] font-semibold text-[#0B0C0F] leading-none">
               UII
@@ -63,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
         </div>
 
         {/* 3 Nav Items (Dashboard, Peminjaman Ruangan, Pengaduan Fasilitas) */}
-        <nav className="flex flex-col gap-[20px] lg:gap-[24px] w-full mt-2 lg:mt-0">
+        <nav className="flex flex-col gap-[18px] lg:gap-[20px] w-full mt-2">
           {/* 1. Dashboard */}
           <NavLink
             to="/dashboard"
@@ -79,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
                 {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#093697] rounded-r-[8px]" />
                 )}
-                <div className="flex items-center gap-[14px] pl-[20px] lg:pl-[24px] pr-3">
+                <div className="flex items-center gap-[14px] pl-6 pr-4">
                   <img
                     src={iconDashboard}
                     alt=""
@@ -90,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
                         : 'grayscale(100%) opacity(0.6)',
                     }}
                   />
-                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal whitespace-nowrap">
+                  <span className="font-['Poppins'] text-[14.5px] font-normal leading-normal whitespace-nowrap">
                     Dashboard
                   </span>
                 </div>
@@ -113,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
                 {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#093697] rounded-r-[8px]" />
                 )}
-                <div className="flex items-center gap-[14px] pl-[20px] lg:pl-[24px] pr-3">
+                <div className="flex items-center gap-[14px] pl-6 pr-4">
                   <img
                     src={iconCalendar}
                     alt=""
@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
                         : 'none',
                     }}
                   />
-                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal whitespace-nowrap">
+                  <span className="font-['Poppins'] text-[14.5px] font-normal leading-normal whitespace-nowrap">
                     Peminjaman Ruangan
                   </span>
                 </div>
@@ -132,7 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
             )}
           </NavLink>
 
-          {/* 3. Pengaduan Fasilitas (Bebas tabrakan border) */}
+          {/* 3. Pengaduan Fasilitas (Container lebar, tidak terpotong) */}
           <NavLink
             to="/pengaduan"
             onClick={onClose}
@@ -147,7 +147,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
                 {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#093697] rounded-r-[8px]" />
                 )}
-                <div className="flex items-center gap-[14px] pl-[20px] lg:pl-[24px] pr-3">
+                <div className="flex items-center gap-[14px] pl-6 pr-4">
                   <img
                     src={iconWarning}
                     alt=""
@@ -158,7 +158,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
                         : 'none',
                     }}
                   />
-                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal whitespace-nowrap">
+                  <span className="font-['Poppins'] text-[14.5px] font-normal leading-normal whitespace-nowrap">
                     Pengaduan Fasilitas
                   </span>
                 </div>
@@ -251,8 +251,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
 
   return (
     <>
-      {/* 1. Tampilan Desktop: Sticky top-0 h-screen, tidak terpotong saat scroll */}
-      <aside className="hidden lg:flex w-[275px] min-w-[275px] sticky top-0 h-screen bg-white flex-col justify-between border-r border-[#E2E8F0] select-none z-20 shrink-0">
+      {/* 1. Tampilan Desktop: Sticky top-0 h-screen, lebar luas tanpa teks terpotong */}
+      <aside className="hidden lg:flex w-[300px] min-w-[300px] sticky top-0 h-screen bg-white flex-col justify-between border-r border-[#E2E8F0] select-none z-20 shrink-0">
         {navContent}
       </aside>
 
@@ -265,7 +265,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen = false, onClose 
             onClick={onClose}
           />
           {/* Slide-over Panel */}
-          <aside className="fixed left-0 top-0 bottom-0 w-[275px] max-w-[85vw] bg-white z-10 flex flex-col justify-between border-r border-[#E2E8F0] shadow-2xl animate-in slide-in-from-left duration-200">
+          <aside className="fixed left-0 top-0 bottom-0 w-[300px] max-w-[85vw] bg-white z-10 flex flex-col justify-between border-r border-[#E2E8F0] shadow-2xl animate-in slide-in-from-left duration-200">
             {navContent}
           </aside>
         </div>

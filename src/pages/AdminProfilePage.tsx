@@ -9,10 +9,10 @@ export const AdminProfilePage: React.FC = () => {
   return (
     <div className="bg-[#F5F8FF] min-h-screen w-full select-none font-['Poppins']">
       {/* Responsive Content Wrapper */}
-      <div className="pt-6 sm:pt-8 lg:pt-[88px] px-4 sm:px-6 lg:px-12 pb-16 w-full">
+      <div className="pt-5 sm:pt-6 lg:pt-8 px-4 sm:px-6 lg:px-12 pb-16 w-full">
         {/* Header Row: Title on Left & Date Pill on Right */}
-        <div className="flex flex-row items-center justify-between w-full mb-6 sm:mb-8 gap-2">
-          <h1 className="font-['Poppins'] font-bold text-[24px] sm:text-[32px] text-[#093697] leading-none truncate">
+        <div className="flex flex-row items-center justify-between w-full mb-6 sm:mb-7 gap-3 min-h-[44px]">
+          <h1 className="font-['Poppins'] font-bold text-[24px] sm:text-[32px] text-[#093697] leading-tight pb-0.5 flex-1 min-w-0">
             Profil Admin
           </h1>
 

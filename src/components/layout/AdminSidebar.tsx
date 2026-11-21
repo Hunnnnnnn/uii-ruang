@@ -40,8 +40,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
   const navContent = (
     <div className="flex flex-col justify-between h-full w-full">
       <div className="w-full">
-        {/* Brand Logo UIIRuang Admin (Figma exact: x=12px, y=69px, w=169px, h=47px) */}
-        <div className="pt-[48px] lg:pt-[69px] pl-[20px] lg:pl-[12px] h-[110px] lg:h-[140px] flex items-center justify-between pr-4">
+        {/* Brand Logo UIIRuang Admin: Posisi rapi dekat atas */}
+        <div className="pt-6 lg:pt-8 pl-6 h-[85px] lg:h-[100px] flex items-center justify-between pr-4">
           <div className="flex items-center">
             <span className="font-['Poppins'] text-[32px] font-semibold text-[#0B0C0F] leading-none">
               UII
@@ -62,7 +62,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
         </div>
 
         {/* 3 Nav Items Admin (Dashboard, Persetujuan Peminjaman, Laporan Kerusakan) */}
-        <nav className="flex flex-col gap-[20px] lg:gap-[24px] w-full mt-2 lg:mt-0">
+        <nav className="flex flex-col gap-[18px] lg:gap-[20px] w-full mt-2">
           {/* 1. Dashboard */}
           <NavLink
             to="/admin/dashboard"
@@ -78,7 +78,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
                 {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#093697] rounded-r-[8px]" />
                 )}
-                <div className="flex items-center gap-[14px] pl-[20px] lg:pl-[24px] pr-3">
+                <div className="flex items-center gap-[14px] pl-6 pr-4">
                   <img
                     src={iconDashboard}
                     alt=""
@@ -89,7 +89,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
                         : 'grayscale(100%) opacity(0.6)',
                     }}
                   />
-                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal whitespace-nowrap">
+                  <span className="font-['Poppins'] text-[14.5px] font-normal leading-normal whitespace-nowrap">
                     Dashboard
                   </span>
                 </div>
@@ -112,7 +112,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
                 {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#093697] rounded-r-[8px]" />
                 )}
-                <div className="flex items-center gap-[14px] pl-[20px] lg:pl-[24px] pr-3">
+                <div className="flex items-center gap-[14px] pl-6 pr-4">
                   <img
                     src={iconCalendar}
                     alt=""
@@ -123,7 +123,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
                         : 'none',
                     }}
                   />
-                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal whitespace-nowrap">
+                  <span className="font-['Poppins'] text-[14.5px] font-normal leading-normal whitespace-nowrap">
                     Persetujuan Peminjaman
                   </span>
                 </div>
@@ -146,7 +146,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
                 {isActive && (
                   <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#093697] rounded-r-[8px]" />
                 )}
-                <div className="flex items-center gap-[14px] pl-[20px] lg:pl-[24px] pr-3">
+                <div className="flex items-center gap-[14px] pl-6 pr-4">
                   <img
                     src={iconWarning}
                     alt=""
@@ -157,7 +157,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
                         : 'none',
                     }}
                   />
-                  <span className="font-['Poppins'] text-[14px] font-normal leading-normal whitespace-nowrap">
+                  <span className="font-['Poppins'] text-[14.5px] font-normal leading-normal whitespace-nowrap">
                     Laporan Kerusakan
                   </span>
                 </div>
@@ -250,8 +250,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
 
   return (
     <>
-      {/* 1. Tampilan Desktop: Sticky top-0 h-screen */}
-      <aside className="hidden lg:flex w-[275px] min-w-[275px] sticky top-0 h-screen bg-white flex-col justify-between border-r border-[#E2E8F0] select-none z-20 shrink-0">
+      {/* 1. Tampilan Desktop: Sticky top-0 h-screen, lebar luas tanpa teks terpotong */}
+      <aside className="hidden lg:flex w-[300px] min-w-[300px] sticky top-0 h-screen bg-white flex-col justify-between border-r border-[#E2E8F0] select-none z-20 shrink-0">
         {navContent}
       </aside>
 
@@ -262,7 +262,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
             className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
             onClick={onClose}
           />
-          <aside className="fixed left-0 top-0 bottom-0 w-[275px] max-w-[85vw] bg-white z-10 flex flex-col justify-between border-r border-[#E2E8F0] shadow-2xl animate-in slide-in-from-left duration-200">
+          <aside className="fixed left-0 top-0 bottom-0 w-[300px] max-w-[85vw] bg-white z-10 flex flex-col justify-between border-r border-[#E2E8F0] shadow-2xl animate-in slide-in-from-left duration-200">
             {navContent}
           </aside>
         </div>
