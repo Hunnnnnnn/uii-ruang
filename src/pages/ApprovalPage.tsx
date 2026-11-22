@@ -11,12 +11,10 @@ import {
 } from 'lucide-react';
 import { useBooking } from '../context/BookingContext';
 import { DatePill } from '../components/layout/DatePill';
-import { useAuth } from '../context/AuthContext';
 import { Booking } from '../types';
 
 export const ApprovalPage: React.FC = () => {
-  const { bookings, approveBooking, rejectBooking, addBooking, rooms } = useBooking();
-  const { currentUser } = useAuth();
+  const { bookings, approveBooking, rejectBooking, createAdminBooking, rooms } = useBooking();
 
   const [activeTab, setActiveTab] = useState<'semua' | 'diajukan' | 'disetujui' | 'ditolak'>('semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,7 +32,7 @@ export const ApprovalPage: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Modal Create On Behalf (Booking Atas Nama Dosen/Tendik FR-08)
+  // Modal Create On Behalf (Booking Atas Nama Dosen/Tendik FR-08 / TC_ADMBOOK_001)
   const [onBehalfModalOpen, setOnBehalfModalOpen] = useState(false);
   const [onBehalfName, setOnBehalfName] = useState('');
   const [onBehalfRoomId, setOnBehalfRoomId] = useState(rooms[0]?.id || 1);
@@ -42,6 +40,7 @@ export const ApprovalPage: React.FC = () => {
   const [onBehalfStart, setOnBehalfStart] = useState(8);
   const [onBehalfEnd, setOnBehalfEnd] = useState(10);
   const [onBehalfPurpose, setOnBehalfPurpose] = useState('');
+  const [onBehalfReason, setOnBehalfReason] = useState('');
 
   // Filter bookings
   const filteredBookings = bookings.filter((b) => {
@@ -58,7 +57,8 @@ export const ApprovalPage: React.FC = () => {
       b.user?.nim?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.user?.number_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.room?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.purpose.toLowerCase().includes(searchQuery.toLowerCase());
+      b.purpose.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (b.on_behalf_of && b.on_behalf_of.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return matchesTab && matchesSearch;
   });
@@ -112,23 +112,50 @@ export const ApprovalPage: React.FC = () => {
 
   const handleCreateOnBehalf = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await addBooking({
+    setActionError(null);
+
+    const nameTrimmed = onBehalfName.trim();
+    if (!nameTrimmed) {
+      setActionError('Nama Dosen / Pihak yang diwakili wajib diisi.');
+      return;
+    }
+
+    const purposeTrimmed = onBehalfPurpose.trim();
+    if (purposeTrimmed.length < 5) {
+      setActionError('Agenda / Tujuan kegiatan minimal 5 karakter.');
+      return;
+    }
+
+    const reasonTrimmed = onBehalfReason.trim();
+    if (reasonTrimmed && reasonTrimmed.length < 10) {
+      setActionError('Alasan peminjaman admin minimal 10 karakter.');
+      return;
+    }
+
+    if (onBehalfStart >= onBehalfEnd) {
+      setActionError('Jam selesai harus lebih besar dari jam mulai.');
+      return;
+    }
+
+    const res = await createAdminBooking({
       room_id: onBehalfRoomId,
-      user_id: currentUser ? currentUser.id : 99,
-      purpose: `[Dosen/Tendik: ${onBehalfName}] ${onBehalfPurpose}`,
+      on_behalf_name: nameTrimmed,
       date: onBehalfDate,
-      daily_start_hour: onBehalfStart,
-      daily_end_hour: onBehalfEnd,
-      start_at: `${onBehalfDate}T${onBehalfStart.toString().padStart(2, '0')}:00:00+07:00`,
-      end_at: `${onBehalfDate}T${onBehalfEnd.toString().padStart(2, '0')}:00:00+07:00`,
+      start_hour: onBehalfStart,
+      end_hour: onBehalfEnd,
+      purpose: purposeTrimmed,
+      reason_for_admin_booking:
+        reasonTrimmed || `Permohonan resmi peminjaman ruangan atas nama ${nameTrimmed}.`,
     });
 
     if (res.success) {
       setOnBehalfModalOpen(false);
       setOnBehalfName('');
       setOnBehalfPurpose('');
+      setOnBehalfReason('');
+      setActionError(null);
     } else {
-      setActionError(res.message || 'Gagal membuat booking');
+      setActionError(res.message || 'Gagal membuat booking atas nama');
     }
   };
 
@@ -206,10 +233,13 @@ export const ApprovalPage: React.FC = () => {
             />
           </div>
 
-          {/* Tombol Buat Booking (Atas Nama Dosen/Tendik - FR-08) */}
+          {/* Tombol Buat Booking (Atas Nama Dosen/Tendik - FR-08 / TC_ADMBOOK_001) */}
           <button
-            onClick={() => setOnBehalfModalOpen(true)}
-            className="w-full sm:w-auto bg-[#093697] hover:bg-[#082b79] text-white rounded-[8px] h-[48px] px-6 flex items-center justify-center gap-2 font-['Poppins'] text-[14px] font-medium transition shadow-xs shrink-0"
+            onClick={() => {
+              setActionError(null);
+              setOnBehalfModalOpen(true);
+            }}
+            className="w-full sm:w-auto bg-[#093697] hover:bg-[#082b79] text-white rounded-[8px] h-[48px] px-6 flex items-center justify-center gap-2 font-['Poppins'] text-[14px] font-medium transition shadow-xs shrink-0 cursor-pointer"
           >
             <Plus className="w-5 h-5" />
             <span>Buat Booking (Atas Nama)</span>
@@ -248,7 +278,9 @@ export const ApprovalPage: React.FC = () => {
                   className="min-h-[56px] py-2 flex items-center px-6 font-['Poppins'] text-[13px] text-[#0B0C0F] hover:bg-slate-50 transition"
                 >
                   <span className="w-[15%] min-w-[120px] font-medium">
-                    {booking.user?.number_id || booking.user?.nim || '24523014'}
+                    {booking.on_behalf_of
+                      ? 'Dosen'
+                      : booking.user?.number_id || booking.user?.nim || '24523014'}
                   </span>
                   <span className="w-[18%] min-w-[150px]">
                     {booking.room
@@ -264,7 +296,9 @@ export const ApprovalPage: React.FC = () => {
                       : `${String(booking.daily_start_hour || 7).padStart(2, '0')}:00 - ${String(booking.daily_end_hour || 9).padStart(2, '0')}:00`}
                   </span>
                   <span className="w-[15%] min-w-[120px]">
-                    {booking.organization_name
+                    {booking.on_behalf_of
+                      ? `Dosen (${booking.on_behalf_of})`
+                      : booking.organization_name
                       ? 'UKM'
                       : booking.purpose.includes('Dosen')
                       ? 'Dosen/Tendik'
@@ -570,29 +604,59 @@ export const ApprovalPage: React.FC = () => {
 
               <div>
                 <label className="block font-medium text-slate-700 mb-1">
-                  Agenda / Tujuan Kegiatan *
+                  Agenda / Tujuan Kegiatan * (Min. 5 karakter)
                 </label>
                 <textarea
                   rows={2}
                   value={onBehalfPurpose}
-                  onChange={(e) => setOnBehalfPurpose(e.target.value)}
+                  onChange={(e) => {
+                    setOnBehalfPurpose(e.target.value);
+                    if (actionError) setActionError(null);
+                  }}
                   placeholder="Contoh: Kuliah Tamu Artificial Intelligence bersama praktisi"
                   className="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:border-[#093697]"
                   required
                 />
               </div>
 
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">
+                  Alasan / Dasar Peminjaman Admin * (Min. 10 karakter)
+                </label>
+                <textarea
+                  rows={2}
+                  value={onBehalfReason}
+                  onChange={(e) => {
+                    setOnBehalfReason(e.target.value);
+                    if (actionError) setActionError(null);
+                  }}
+                  placeholder="Contoh: Permintaan resmi jadwal kuliah pengganti dari fakultas/dosen."
+                  className="w-full border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:border-[#093697]"
+                  required
+                />
+              </div>
+
+              {actionError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{actionError}</span>
+                </div>
+              )}
+
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setOnBehalfModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
+                  onClick={() => {
+                    setOnBehalfModalOpen(false);
+                    setActionError(null);
+                  }}
+                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#093697] hover:bg-[#082b79] text-white rounded-lg text-sm font-medium transition"
+                  className="px-4 py-2 bg-[#093697] hover:bg-[#082b79] text-white rounded-lg text-sm font-medium transition cursor-pointer"
                 >
                   Simpan Booking
                 </button>

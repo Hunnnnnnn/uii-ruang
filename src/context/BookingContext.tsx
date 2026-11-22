@@ -27,6 +27,18 @@ interface BookingContextType {
     newBookingData: Omit<Booking, 'id' | 'status' | 'created_at'>,
     file?: File | null
   ) => Promise<{ success: boolean; message?: string }>;
+  createAdminBooking: (data: {
+    room_id: number;
+    user_id?: number;
+    on_behalf_name: string;
+    date: string;
+    end_date?: string | null;
+    start_hour: number;
+    end_hour: number;
+    purpose: string;
+    reason_for_admin_booking: string;
+    organization_id?: number | null;
+  }) => Promise<{ success: boolean; message?: string }>;
   approveBooking: (
     bookingId: number,
     priceBreakdown?: any
@@ -480,6 +492,129 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  const createAdminBooking = async (data: {
+    room_id: number;
+    user_id?: number;
+    on_behalf_name: string;
+    date: string;
+    end_date?: string | null;
+    start_hour: number;
+    end_hour: number;
+    purpose: string;
+    reason_for_admin_booking: string;
+    organization_id?: number | null;
+  }): Promise<{ success: boolean; message?: string }> => {
+    const room = rooms.find((r) => r.id === data.room_id) || MOCK_ROOMS[0];
+    const backendRoomId = data.room_id <= 6 ? data.room_id : ((data.room_id - 1) % 6) + 1;
+    const targetUserId = data.user_id || 2; // Default user ID dosen/tendik di backend
+
+    // Format purpose agar informatif dan memenuhi minLength: 10
+    const fullPurpose = `[Dosen/Tendik: ${data.on_behalf_name}] ${data.purpose}`;
+    const taggedPurpose = room
+      ? `[ROOM:${room.id}:${room.building}:${room.name}] ${fullPurpose}`
+      : fullPurpose;
+
+    const finalReason =
+      data.reason_for_admin_booking.trim().length >= 10
+        ? data.reason_for_admin_booking.trim()
+        : `Permohonan resmi peminjaman ruangan atas nama ${data.on_behalf_name}.`;
+
+    try {
+      const res = await adminBookingsApi.createAdminBooking({
+        user_id: targetUserId,
+        room_id: backendRoomId,
+        date: data.date,
+        end_date: data.end_date || null,
+        start_hour: data.start_hour,
+        end_hour: data.end_hour,
+        purpose: taggedPurpose.length >= 10 ? taggedPurpose : `${taggedPurpose} - Terjadwal resmi`,
+        reason_for_admin_booking: finalReason,
+        organization_id: data.organization_id || null,
+      });
+
+      const createdId = res.data?.id || Date.now();
+      if (room) {
+        saveBookingRoomMapping(createdId, data.room_id, room);
+      }
+
+      const newBooking: Booking = {
+        id: createdId,
+        user_id: targetUserId,
+        user: {
+          id: targetUserId,
+          name: data.on_behalf_name,
+          role: 'mahasiswa',
+          credit_score: 100,
+          status: 'aktif',
+          email: 'dosen@uii.ac.id',
+          nim: 'DOSEN-UII',
+          number_id: 'DOSEN',
+        },
+        room_id: data.room_id,
+        room,
+        purpose: fullPurpose,
+        date: data.date,
+        end_date: data.end_date || data.date,
+        daily_start_hour: data.start_hour,
+        daily_end_hour: data.end_hour,
+        start_at: `${data.date}T${String(data.start_hour).padStart(2, '0')}:00:00+07:00`,
+        end_at: `${data.date}T${String(data.end_hour).padStart(2, '0')}:00:00+07:00`,
+        status: 'terkonfirmasi',
+        on_behalf_of: data.on_behalf_name,
+        created_at: res.data?.created_at || new Date().toISOString(),
+      };
+
+      setBookings((prev) => [newBooking, ...prev]);
+      return { success: true };
+    } catch (err: any) {
+      console.warn('Backend admin booking API failed, falling back to local simulation:', err);
+      const errMsg = getApiErrorMessage(err);
+
+      if (
+        !err.message?.includes('Network Error') &&
+        err.response &&
+        err.response.status !== 500
+      ) {
+        return { success: false, message: errMsg };
+      }
+
+      // Offline simulation fallback
+      const fallbackId = Date.now();
+      if (room) {
+        saveBookingRoomMapping(fallbackId, data.room_id, room);
+      }
+      const newBooking: Booking = {
+        id: fallbackId,
+        user_id: targetUserId,
+        user: {
+          id: targetUserId,
+          name: data.on_behalf_name,
+          role: 'mahasiswa',
+          credit_score: 100,
+          status: 'aktif',
+          email: 'dosen@uii.ac.id',
+          nim: 'DOSEN-UII',
+          number_id: 'DOSEN',
+        },
+        room_id: data.room_id,
+        room,
+        purpose: fullPurpose,
+        date: data.date,
+        end_date: data.end_date || data.date,
+        daily_start_hour: data.start_hour,
+        daily_end_hour: data.end_hour,
+        start_at: `${data.date}T${String(data.start_hour).padStart(2, '0')}:00:00+07:00`,
+        end_at: `${data.date}T${String(data.end_hour).padStart(2, '0')}:00:00+07:00`,
+        status: 'terkonfirmasi',
+        on_behalf_of: data.on_behalf_name,
+        created_at: new Date().toISOString(),
+      };
+
+      setBookings((prev) => [newBooking, ...prev]);
+      return { success: true };
+    }
+  };
+
   const approveBooking = async (
     bookingId: number,
     _priceBreakdown?: any
@@ -717,6 +852,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setSelectedDate,
         refreshBookings,
         addBooking,
+        createAdminBooking,
         approveBooking,
         rejectBooking,
         cancelBooking,

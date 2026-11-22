@@ -236,6 +236,24 @@ export const adminBookingsApi = {
     });
     return response.data;
   },
+
+  createAdminBooking: async (payload: {
+    user_id: number;
+    room_id: number;
+    date: string;
+    end_date?: string | null;
+    start_hour: number;
+    end_hour: number;
+    purpose: string;
+    reason_for_admin_booking: string;
+    organization_id?: number | null;
+  }): Promise<{ message: string; data?: Booking }> => {
+    const response = await apiClient.post<{ message: string; data?: Booking }>(
+      '/admin/bookings',
+      payload
+    );
+    return response.data;
+  },
 };
 
 export const damageReportsApi = {
