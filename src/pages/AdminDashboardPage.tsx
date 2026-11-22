@@ -11,6 +11,12 @@ export const AdminDashboardPage: React.FC = () => {
     type: 'success' | 'error';
   } | null>(null);
 
+  // Modal Reject state (BR-10: Alasan penolakan wajib diisi)
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [selectedRejectBookingId, setSelectedRejectBookingId] = useState<number | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectError, setRejectError] = useState<string | null>(null);
+
   // Pending bookings from live state
   const pendingBookings = bookings.filter((b) => b.status === 'diajukan');
   const countPending = pendingBookings.length;
@@ -47,20 +53,34 @@ export const AdminDashboardPage: React.FC = () => {
     setTimeout(() => setActionFeedback(null), 3500);
   };
 
-  const handleReject = async (id: number) => {
-    const res = await rejectBooking(id, 'Ditolak oleh admin melalui dashboard.');
+  const handleOpenReject = (id: number) => {
+    setSelectedRejectBookingId(id);
+    setRejectionReason('');
+    setRejectError(null);
+    setRejectModalOpen(true);
+  };
+
+  const handleConfirmReject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRejectBookingId) return;
+    const trimmed = rejectionReason.trim();
+    if (!trimmed) {
+      setRejectError('Alasan penolakan wajib diisi (Sesuai Aturan BR-10).');
+      return;
+    }
+
+    const res = await rejectBooking(selectedRejectBookingId, trimmed);
     if (!res.success) {
-      setActionFeedback({
-        text: res.message || 'Gagal menolak peminjaman.',
-        type: 'error',
-      });
+      setRejectError(res.message || 'Gagal menolak peminjaman.');
     } else {
+      setRejectModalOpen(false);
+      setSelectedRejectBookingId(null);
       setActionFeedback({
         text: 'Permohonan peminjaman telah ditolak.',
         type: 'success',
       });
+      setTimeout(() => setActionFeedback(null), 3500);
     }
-    setTimeout(() => setActionFeedback(null), 3500);
   };
 
   // Dapatkan daftar kegiatan peminjaman ruangan yang disetujui / aktif
@@ -279,7 +299,7 @@ export const AdminDashboardPage: React.FC = () => {
                             )}
                             {item.allowReject && (
                               <button
-                                onClick={() => handleReject(item.id)}
+                                onClick={() => handleOpenReject(item.id)}
                                 className="border border-[#CA0004] text-[#CA0004] bg-white hover:bg-red-50 px-3 py-1 rounded-[6px] text-[12px] font-medium flex items-center gap-1.5 transition shadow-xs active:scale-95 cursor-pointer"
                                 title="Tolak Peminjaman"
                               >
@@ -350,6 +370,65 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal Tolak Booking dengan Alasan Wajib (BR-10 & TC_ADMIN_005) */}
+      {rejectModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-[440px] p-6 shadow-xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="font-['Poppins'] font-semibold text-lg text-red-600 mb-1">
+              Tolak Permohonan Peminjaman
+            </h3>
+            <p className="font-['Poppins'] text-xs text-slate-500 mb-4">
+              Sesuai aturan BR-10, Admin wajib menyertakan alasan penolakan tertulis yang jelas kepada pemohon.
+            </p>
+
+            {rejectError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{rejectError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmReject} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Alasan Penolakan *
+                </label>
+                <textarea
+                  rows={3}
+                  value={rejectionReason}
+                  onChange={(e) => {
+                    setRejectionReason(e.target.value);
+                    if (rejectError) setRejectError(null);
+                  }}
+                  placeholder="Contoh: Jadwal bertabrakan dengan agenda resmi kampus atau ruangan sedang dalam pemeliharaan."
+                  className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-red-500 outline-none"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRejectModalOpen(false);
+                    setRejectError(null);
+                  }}
+                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition cursor-pointer shadow-xs active:scale-95"
+                >
+                  Konfirmasi Tolak
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
