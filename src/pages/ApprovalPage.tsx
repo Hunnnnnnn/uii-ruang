@@ -7,6 +7,7 @@ import {
   Eye,
   FileText,
   AlertCircle,
+  ExternalLink,
 } from 'lucide-react';
 import { useBooking } from '../context/BookingContext';
 import { DatePill } from '../components/layout/DatePill';
@@ -23,6 +24,10 @@ export const ApprovalPage: React.FC = () => {
   // Modal Detail Booking
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
+  // Modal Preview PDF Dokumen (TC_ADMIN_002)
+  const [docPreviewModalOpen, setDocPreviewModalOpen] = useState(false);
+  const [previewBooking, setPreviewBooking] = useState<Booking | null>(null);
 
   // Modal Reject state
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -80,19 +85,28 @@ export const ApprovalPage: React.FC = () => {
     setRejectModalOpen(true);
   };
 
+  const handleViewPdf = (booking: Booking) => {
+    setPreviewBooking(booking);
+    setDocPreviewModalOpen(true);
+  };
+
   const handleConfirmReject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBooking) return;
-    if (!rejectionReason.trim()) {
+    const trimmed = rejectionReason.trim();
+    if (!trimmed) {
       setActionError('Alasan penolakan wajib diisi (Sesuai Aturan BR-10).');
       return;
     }
 
-    const res = await rejectBooking(selectedBooking.id, rejectionReason);
+    const res = await rejectBooking(selectedBooking.id, trimmed);
     if (!res.success) {
       setActionError(res.message || 'Gagal menolak booking');
     } else {
       setRejectModalOpen(false);
+      setSelectedBooking(null);
+      setRejectionReason('');
+      setActionError(null);
     }
   };
 
@@ -377,9 +391,14 @@ export const ApprovalPage: React.FC = () => {
                       Terverifikasi tanda tangan digital BEM/DPM
                     </p>
                   </div>
-                  <span className="text-xs font-semibold text-[#093697] hover:underline cursor-pointer">
-                    Lihat PDF
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleViewPdf(selectedBooking)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#093697] hover:bg-[#072B7A] text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Lihat PDF</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -408,7 +427,7 @@ export const ApprovalPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Reject Booking (Wajib Alasan Penolakan BR-10) */}
+      {/* Modal Reject Booking (Wajib Alasan Penolakan BR-10 / TC_ADMIN_005) */}
       {rejectModalOpen && selectedBooking && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-[460px] p-6 shadow-xl border border-slate-100">
@@ -419,6 +438,13 @@ export const ApprovalPage: React.FC = () => {
               Sesuai aturan BR-10, Admin wajib menyertakan alasan penolakan tertulis yang jelas kepada pemohon.
             </p>
 
+            {actionError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{actionError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleConfirmReject} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -427,7 +453,10 @@ export const ApprovalPage: React.FC = () => {
                 <textarea
                   rows={3}
                   value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
+                  onChange={(e) => {
+                    setRejectionReason(e.target.value);
+                    if (actionError) setActionError(null);
+                  }}
                   placeholder="Contoh: Jadwal bertabrakan dengan Ujian Tengah Semester atau kegiatan rektorat."
                   className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-red-500 outline-none"
                   required
@@ -437,7 +466,10 @@ export const ApprovalPage: React.FC = () => {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setRejectModalOpen(false)}
+                  onClick={() => {
+                    setRejectModalOpen(false);
+                    setActionError(null);
+                  }}
                   className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
                 >
                   Batal
@@ -566,6 +598,183 @@ export const ApprovalPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Preview PDF Dokumen Surat Izin (TC_ADMIN_002) */}
+      {docPreviewModalOpen && previewBooking && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-[560px] max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/80">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-blue-100 text-[#093697]">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-['Poppins'] font-bold text-sm text-[#0B0C0F]">
+                    Dokumen Surat Izin Kegiatan
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Surat_Pengajuan_{previewBooking.user?.number_id || previewBooking.user?.nim || 'UII'}.pdf
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDocPreviewModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200/60 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Document Content / Preview Canvas (Simulasi Surat Resmi UII) */}
+            <div className="p-6 overflow-y-auto bg-slate-100/70 font-['Poppins']">
+              <div className="bg-white p-6 sm:p-8 rounded-xl shadow-xs border border-slate-200 text-[#0B0C0F] text-xs leading-relaxed">
+                {/* Kop Surat Resmi UII */}
+                <div className="border-b-2 border-[#093697] pb-3 mb-4 text-center">
+                  <h4 className="font-bold text-[14px] text-[#093697] tracking-wider uppercase">
+                    Universitas Islam Indonesia
+                  </h4>
+                  <p className="text-[11px] font-semibold text-slate-700">
+                    DIREKTORAT PENGELOLAAN SARANA & PRASARANA
+                  </p>
+                  <p className="text-[9.5px] text-slate-500">
+                    Gedung Kuliah Umum (GKU) Sayap Timur Lt. 1, Kampus Terpadu UII, Jl. Kaliurang KM 14.5 Sleman
+                  </p>
+                </div>
+
+                {/* Judul Surat */}
+                <div className="text-center mb-5">
+                  <h5 className="font-bold text-xs underline uppercase tracking-wide">
+                    Surat Permohonan Izin Peminjaman Ruangan
+                  </h5>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    Nomor: UII/DPSP/XI/2026/{String(previewBooking.id).padStart(4, '0')}
+                  </p>
+                </div>
+
+                {/* Isi Informasi Pemohon & Ruangan */}
+                <div className="space-y-2 mb-5">
+                  <div className="grid grid-cols-3 gap-2 py-0.5 border-b border-slate-100">
+                    <span className="text-slate-500">Nama Pemohon</span>
+                    <span className="col-span-2 font-medium">{previewBooking.user?.name || 'Mahasiswa UII'}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 py-0.5 border-b border-slate-100">
+                    <span className="text-slate-500">NIM / ID</span>
+                    <span className="col-span-2 font-medium">{previewBooking.user?.number_id || previewBooking.user?.nim || '24523014'}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 py-0.5 border-b border-slate-100">
+                    <span className="text-slate-500">Organisasi</span>
+                    <span className="col-span-2 font-medium">{previewBooking.organization_name || 'Himpunan / Lembaga Mahasiswa UII'}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 py-0.5 border-b border-slate-100">
+                    <span className="text-slate-500">Ruangan Diminta</span>
+                    <span className="col-span-2 font-semibold text-[#093697]">
+                      {previewBooking.room?.name || 'Ruang Kuliah'} ({previewBooking.room?.building || 'FTI'})
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 py-0.5 border-b border-slate-100">
+                    <span className="text-slate-500">Tanggal Kegiatan</span>
+                    <span className="col-span-2 font-medium">
+                      {previewBooking.date}
+                      {previewBooking.end_date && previewBooking.end_date !== previewBooking.date
+                        ? ` s/d ${previewBooking.end_date}`
+                        : ''}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 py-0.5 border-b border-slate-100">
+                    <span className="text-slate-500">Waktu Pelaksanaan</span>
+                    <span className="col-span-2 font-medium">
+                      {previewBooking.start_at
+                        ? `${previewBooking.start_at.slice(11, 16)} - ${previewBooking.end_at?.slice(11, 16)} WIB`
+                        : `${String(previewBooking.daily_start_hour || 7).padStart(2, '0')}:00 - ${String(previewBooking.daily_end_hour || 9).padStart(2, '0')}:00 WIB`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 py-0.5">
+                    <span className="text-slate-500">Tujuan Kegiatan</span>
+                    <span className="col-span-2 italic text-slate-700 bg-slate-50 p-2 rounded">
+                      "{previewBooking.purpose}"
+                    </span>
+                  </div>
+                </div>
+
+                {/* Stempel Digital Verification */}
+                <div className="mt-6 pt-4 border-t border-dashed border-slate-300 flex items-center justify-between">
+                  <div className="text-[10px] text-slate-500">
+                    <p className="font-semibold text-slate-700">Verifikasi Sistem UII Ruang:</p>
+                    <p>UUID: {previewBooking.id}-2026-XI-VERIFIED</p>
+                    <p className="text-[9px] text-[#14926F] font-semibold mt-0.5">✓ Tanda Tangan Elektronik Sah</p>
+                  </div>
+                  <div className="border border-[#14926F] bg-emerald-50 text-[#14926F] px-3 py-1.5 rounded-lg text-center font-bold text-[10px] tracking-wider uppercase">
+                    TERVERIFIKASI
+                    <span className="block text-[8px] font-normal lowercase tracking-normal">BEM / DPM UII</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Modal */}
+            <div className="px-6 py-3.5 border-t border-slate-200 bg-white flex items-center justify-between">
+              <span className="text-[11px] text-slate-500">
+                1 Dokumen Terlampir (.PDF)
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Surat_Pengajuan_${previewBooking.id}.pdf</title>
+                            <style>
+                              body { font-family: sans-serif; padding: 40px; color: #1e293b; }
+                              .header { text-align: center; border-bottom: 2px solid #093697; padding-bottom: 12px; margin-bottom: 20px; }
+                              h2 { margin: 0; color: #093697; }
+                              table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+                              td { padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+                              .label { width: 30%; color: #64748b; font-weight: 500; }
+                              .stamp { margin-top: 40px; border: 2px solid #14926F; color: #14926F; padding: 12px; display: inline-block; font-weight: bold; }
+                            </style>
+                          </head>
+                          <body>
+                            <div class="header">
+                              <h2>UNIVERSITAS ISLAM INDONESIA</h2>
+                              <p>SURAT PERMOHONAN IZIN PEMINJAMAN RUANGAN</p>
+                              <small>Nomor: UII/DPSP/XI/2026/${String(previewBooking.id).padStart(4, '0')}</small>
+                            </div>
+                            <table>
+                              <tr><td class="label">Nama Pemohon</td><td>${previewBooking.user?.name || 'Mahasiswa UII'}</td></tr>
+                              <tr><td class="label">NIM</td><td>${previewBooking.user?.number_id || previewBooking.user?.nim || '24523014'}</td></tr>
+                              <tr><td class="label">Ruangan</td><td>${previewBooking.room?.name || 'Ruang Kuliah'} (${previewBooking.room?.building || 'FTI'})</td></tr>
+                              <tr><td class="label">Tanggal</td><td>${previewBooking.date}</td></tr>
+                              <tr><td class="label">Keperluan</td><td>${previewBooking.purpose}</td></tr>
+                            </table>
+                            <div class="stamp">TERVERIFIKASI RESMI DPM/BEM UII</div>
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.focus();
+                    }
+                  }}
+                  className="px-3.5 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Buka di Tab Baru</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDocPreviewModalOpen(false)}
+                  className="px-4 py-2 bg-[#093697] hover:bg-[#072B7A] text-white rounded-lg text-xs font-semibold transition cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

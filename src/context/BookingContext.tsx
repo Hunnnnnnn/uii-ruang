@@ -286,6 +286,56 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [damageReports]);
 
   // Check double-booking conflict (BR-04: slot overlap check on blocking bookings)
+  // Mendukung rentang multi-day dan mengembalikan detail tanggal bentrok (TC_BOOK_007)
+  const checkConflictDetail = (
+    roomId: number,
+    startDate: string,
+    startHour: number,
+    endHour: number,
+    endDate?: string,
+    excludeBookingId?: number
+  ): { hasConflict: boolean; conflictDate?: string; conflictBooking?: Booking } => {
+    const blockingStatuses: BookingStatus[] = [
+      'diajukan',
+      'disetujui',
+      'menunggu_bayar',
+      'terkonfirmasi',
+    ];
+
+    const targetEndDate = endDate || startDate;
+
+    // Generate daftar tanggal YYYY-MM-DD dalam rentang
+    const dates: string[] = [];
+    const cur = new Date(startDate);
+    const end = new Date(targetEndDate);
+    while (cur <= end) {
+      dates.push(cur.toISOString().slice(0, 10));
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    for (const d of dates) {
+      for (const b of bookings) {
+        if (excludeBookingId && b.id === excludeBookingId) continue;
+        if (b.room_id !== roomId && b.room?.id !== roomId) continue;
+        if (!blockingStatuses.includes(b.status)) continue;
+
+        const bStart = b.daily_start_hour ?? (b.start_at ? new Date(b.start_at).getHours() : 0);
+        const bEnd = b.daily_end_hour ?? (b.end_at ? new Date(b.end_at).getHours() : 0);
+        const hoursOverlap = startHour < bEnd && endHour > bStart;
+        if (!hoursOverlap) continue;
+
+        const bStartDate = b.date || (b.start_at ? b.start_at.slice(0, 10) : '');
+        const bEndDate = b.end_date || bStartDate;
+
+        if (d >= bStartDate && d <= bEndDate) {
+          return { hasConflict: true, conflictDate: d, conflictBooking: b };
+        }
+      }
+    }
+
+    return { hasConflict: false };
+  };
+
   const checkConflict = (
     roomId: number,
     date: string,
@@ -293,21 +343,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     endHour: number,
     excludeBookingId?: number
   ): boolean => {
-    const blockingStatuses: BookingStatus[] = [
-      'diajukan',
-      'disetujui',
-      'menunggu_bayar',
-      'terkonfirmasi',
-    ];
-    return bookings.some((b) => {
-      if (excludeBookingId && b.id === excludeBookingId) return false;
-      if (b.room_id !== roomId) return false;
-      if (b.date !== date) return false;
-      if (!blockingStatuses.includes(b.status)) return false;
-
-      // Overlap condition: start < other.end && end > other.start
-      return startHour < b.daily_end_hour && endHour > b.daily_start_hour;
-    });
+    return checkConflictDetail(roomId, date, startHour, endHour, undefined, excludeBookingId).hasConflict;
   };
 
   const addBooking = async (
@@ -320,11 +356,22 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return { success: false, message: 'Ruangan sedang dalam perbaikan dan tidak bisa dipesan.' };
     }
 
-    // 2. Conflict check (FR-04 / BR-04)
-    if (checkConflict(data.room_id, data.date, data.daily_start_hour, data.daily_end_hour)) {
+    // 2. Conflict check (FR-04 / BR-04 / TC_BOOK_007 Multi-day conflict check)
+    const conflictRes = checkConflictDetail(
+      data.room_id,
+      data.date,
+      data.daily_start_hour,
+      data.daily_end_hour,
+      data.end_date
+    );
+
+    if (conflictRes.hasConflict && conflictRes.conflictDate) {
+      const parts = conflictRes.conflictDate.split('-');
+      const formattedDate =
+        parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : conflictRes.conflictDate;
       return {
         success: false,
-        message: `Slot pada jam ${data.daily_start_hour}:00 - ${data.daily_end_hour}:00 sudah terisi atau diajukan peminjam lain. Silakan pilih jam atau ruangan lain.`,
+        message: `Permohonan booking ditolak: Jadwal bentrok pada tanggal ${formattedDate} (Slot jam ${data.daily_start_hour}:00 - ${data.daily_end_hour}:00 sudah terisi atau diajukan peminjam lain).`,
       };
     }
 
@@ -351,6 +398,9 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const formData = new FormData();
       formData.append('room_id', String(backendRoomId));
       formData.append('date', data.date);
+      if (data.end_date) {
+        formData.append('end_date', data.end_date);
+      }
       formData.append('start_hour', String(data.daily_start_hour));
       formData.append('end_hour', String(data.daily_end_hour));
 

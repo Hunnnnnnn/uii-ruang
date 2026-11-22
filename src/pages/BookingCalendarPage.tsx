@@ -23,7 +23,7 @@ const FACULTY_LIST = [
   { id: 'GKU', label: 'GKU' },
 ];
 
-// 15 slot jam operasional 07:00 - 22:00
+// 14 slot jam operasional 07:00 - 21:00 (TC_AVL_03)
 const OPERATING_HOURS = [
   { startHour: 7, endHour: 8, label: '07:00 - 08:00' },
   { startHour: 8, endHour: 9, label: '08:00 - 09:00' },
@@ -39,19 +39,18 @@ const OPERATING_HOURS = [
   { startHour: 18, endHour: 19, label: '18:00 - 19:00' },
   { startHour: 19, endHour: 20, label: '19:00 - 20:00' },
   { startHour: 20, endHour: 21, label: '20:00 - 21:00' },
-  { startHour: 21, endHour: 22, label: '21:00 - 22:00' },
 ];
 
 const START_HOUR_OPTIONS = [
   '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
   '13:00', '14:00', '15:00', '16:00', '17:00', '18:00',
-  '19:00', '20:00', '21:00'
+  '19:00', '20:00'
 ];
 
 const ALL_END_HOUR_OPTIONS = [
   '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
   '14:00', '15:00', '16:00', '17:00', '18:00', '19:00',
-  '20:00', '21:00', '22:00'
+  '20:00', '21:00'
 ];
 
 export const BookingCalendarPage: React.FC = () => {
@@ -70,11 +69,11 @@ export const BookingCalendarPage: React.FC = () => {
   // Ruangan yang sedang dipilih (null = tabel ruangan, non-null = tampilan 4 card booking Figma)
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
-  // Form State Detail Peminjaman (Default ke hari ini, tanpa data dummy)
+  // Form State Detail Peminjaman (Default ke hari ini, mendukung multi-day TC_BOOK_007)
   const [selectedDay, setSelectedDay] = useState<number>(todayDay);
+  const [selectedEndDay, setSelectedEndDay] = useState<number>(todayDay);
   const [startDate, setStartDate] = useState(todayFormatted);
   const [startTime, setStartTime] = useState('07:00');
-  const [endDate, setEndDate] = useState(todayFormatted);
   const [endTime, setEndTime] = useState('09:00');
   const [eventPurpose, setEventPurpose] = useState('');
   const [participantCount, setParticipantCount] = useState('');
@@ -128,14 +127,20 @@ export const BookingCalendarPage: React.FC = () => {
       });
   }, [selectedRoom, selectedDay]);
 
-  // Status riil per slot jam (07:00 - 22:00) tanpa dummy data
-  const getSlotStatus = (startH: number, endH: number): 'terisi' | 'menunggu' | 'kosong' => {
+  // Status riil per slot jam (07:00 - 21:00) tanpa dummy data (Mendukung pengecekan hari spesifik / multi-day)
+  const getSlotStatus = (
+    startH: number,
+    endH: number,
+    checkDay: number = selectedDay
+  ): 'terisi' | 'menunggu' | 'kosong' => {
     // 1. Cek dari daftar booking aktif di context (paling akurat dan spesifik per ruangan asli)
     if (selectedRoom) {
-      const dayStr = `2026-11-${String(selectedDay).padStart(2, '0')}`;
+      const dayStr = `2026-11-${String(checkDay).padStart(2, '0')}`;
       const conflict = bookings.find((b) => {
         const matchesRoom = b.room_id === selectedRoom.id || b.room?.id === selectedRoom.id;
-        const matchesDate = b.date === dayStr || b.start_at?.startsWith(dayStr);
+        const bStartDate = b.date || (b.start_at ? b.start_at.slice(0, 10) : '');
+        const bEndDate = b.end_date || bStartDate;
+        const matchesDate = bStartDate <= dayStr && dayStr <= bEndDate;
         if (!matchesRoom || !matchesDate) return false;
 
         const bStart = b.daily_start_hour || (b.start_at ? new Date(b.start_at).getHours() : 0);
@@ -151,7 +156,7 @@ export const BookingCalendarPage: React.FC = () => {
     }
 
     // 2. Cek dari backend availability untuk ruangan yang memang terdaftar di server
-    if (selectedRoom && selectedRoom.id <= 3 && liveSlots && liveSlots.length > 0) {
+    if (checkDay === selectedDay && selectedRoom && selectedRoom.id <= 3 && liveSlots && liveSlots.length > 0) {
       const match = liveSlots.find((s) => {
         let h = s.hour;
         if (h === undefined && s.start) {
@@ -170,7 +175,7 @@ export const BookingCalendarPage: React.FC = () => {
     return 'kosong';
   };
 
-  // Cek apakah satu hari sudah penuh terisi seluruh jam operasionalnya (07:00 - 22:00)
+  // Cek apakah satu hari sudah penuh terisi seluruh jam operasionalnya (07:00 - 21:00)
   const isDayFull = (day: number): boolean => {
     if (!selectedRoom) return false;
     const dayStr = `2026-11-${String(day).padStart(2, '0')}`;
@@ -192,11 +197,11 @@ export const BookingCalendarPage: React.FC = () => {
       const sH = b.daily_start_hour || (b.start_at ? new Date(b.start_at).getHours() : 0);
       const eH = b.daily_end_hour || (b.end_at ? new Date(b.end_at).getHours() : 0);
       for (let h = sH; h < eH; h++) {
-        if (h >= 7 && h < 22) occupiedHours.add(h);
+        if (h >= 7 && h < 21) occupiedHours.add(h);
       }
     });
 
-    return occupiedHours.size >= 15;
+    return occupiedHours.size >= 14;
   };
 
   // Cek apakah slot jam tertentu termasuk dalam rentang pilihan user saat ini
@@ -249,10 +254,17 @@ export const BookingCalendarPage: React.FC = () => {
   const handleDayClick = (day: number) => {
     if (day < todayDay) return;
     if (isDayFull(day)) return;
-    setSelectedDay(day);
-    const dayStr = day.toString().padStart(2, '0');
-    setStartDate(`${dayStr}/11/2026`);
-    setEndDate(`${dayStr}/11/2026`);
+
+    // Jika belum ada rentang (selectedDay === selectedEndDay) dan user klik tanggal setelahnya, jadikan rentang multi-day (TC_BOOK_007)
+    if (selectedDay === selectedEndDay && day > selectedDay) {
+      setSelectedEndDay(day);
+    } else {
+      // Set tanggal mulai baru dan reset tanggal selesai
+      setSelectedDay(day);
+      setSelectedEndDay(day);
+      const dayStr = day.toString().padStart(2, '0');
+      setStartDate(`${dayStr}/11/2026`);
+    }
     setFormError(null);
   };
 
@@ -296,18 +308,21 @@ export const BookingCalendarPage: React.FC = () => {
       return;
     }
 
-    // Validasi apakah rentang jam yang diblok menabrak slot yang sudah terisi / menunggu
-    for (let h = startH; h < endH; h++) {
-      const status = getSlotStatus(h, h + 1);
-      if (status !== 'kosong') {
-        const timeLabel = `${String(h).padStart(2, '0')}:00 - ${String(h + 1).padStart(2, '0')}:00`;
-        setFormError(
-          `Slot jam ${timeLabel} sudah ${
-            status === 'terisi' ? 'terpakai' : 'menunggu persetujuan'
-          }. Silakan pilih jam lain yang kosong.`
-        );
-        setIsSubmitting(false);
-        return;
+    // Validasi multi-day apakah ada salah satu hari dalam rentang yang bentrok (TC_BOOK_007)
+    for (let day = selectedDay; day <= selectedEndDay; day++) {
+      for (let h = startH; h < endH; h++) {
+        const status = getSlotStatus(h, h + 1, day);
+        if (status !== 'kosong') {
+          const dateFormatted = `${String(day).padStart(2, '0')}/11/2026`;
+          const timeLabel = `${String(h).padStart(2, '0')}:00 - ${String(h + 1).padStart(2, '0')}:00`;
+          setFormError(
+            `Permohonan booking ditolak: Jadwal bentrok pada tanggal ${dateFormatted} (Slot jam ${timeLabel} sudah ${
+              status === 'terisi' ? 'terpakai' : 'menunggu persetujuan'
+            }).`
+          );
+          setIsSubmitting(false);
+          return;
+        }
       }
     }
 
@@ -318,10 +333,11 @@ export const BookingCalendarPage: React.FC = () => {
         purpose: eventPurpose,
         organization_name: atasNama !== 'UKM atau Mahasiswa' ? atasNama : null,
         date: `2026-11-${selectedDay.toString().padStart(2, '0')}`,
+        end_date: `2026-11-${selectedEndDay.toString().padStart(2, '0')}`,
         daily_start_hour: startH,
         daily_end_hour: endH,
         start_at: `2026-11-${selectedDay.toString().padStart(2, '0')}T${startH.toString().padStart(2, '0')}:00:00+07:00`,
-        end_at: `2026-11-${selectedDay.toString().padStart(2, '0')}T${endH.toString().padStart(2, '0')}:00:00+07:00`,
+        end_at: `2026-11-${selectedEndDay.toString().padStart(2, '0')}T${endH.toString().padStart(2, '0')}:00:00+07:00`,
         permit_docs: fileName ? [fileName] : [],
       },
       selectedFile
@@ -639,6 +655,7 @@ export const BookingCalendarPage: React.FC = () => {
                     {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
                       const isPast = d < todayDay;
                       const isFull = isDayFull(d);
+                      const isRange = selectedEndDay > selectedDay;
                       const isSelected = selectedDay === d;
 
                       if (isPast) {
@@ -669,16 +686,25 @@ export const BookingCalendarPage: React.FC = () => {
                         );
                       }
 
+                      let dayStyle = 'text-[#0B0C0F] hover:bg-blue-50 hover:text-[#093697] font-normal';
+                      if (isRange) {
+                        if (d === selectedDay) {
+                          dayStyle = 'bg-[#093697] text-white font-bold rounded-l-full shadow-xs ring-2 ring-[#093697]/30';
+                        } else if (d === selectedEndDay) {
+                          dayStyle = 'bg-[#093697] text-white font-bold rounded-r-full shadow-xs ring-2 ring-[#093697]/30';
+                        } else if (d > selectedDay && d < selectedEndDay) {
+                          dayStyle = 'bg-blue-100 text-[#093697] font-semibold rounded-none';
+                        }
+                      } else if (isSelected) {
+                        dayStyle = 'bg-[#093697] text-white font-bold shadow-xs ring-2 ring-[#093697]/30';
+                      }
+
                       return (
                         <button
                           key={d}
                           type="button"
                           onClick={() => handleDayClick(d)}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#093697] text-white font-bold shadow-xs ring-2 ring-[#093697]/30'
-                              : 'text-[#0B0C0F] hover:bg-blue-50 hover:text-[#093697] font-normal'
-                          }`}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition cursor-pointer ${dayStyle}`}
                           title={`Pilih tanggal ${d} November 2026`}
                         >
                           {d}
@@ -758,7 +784,7 @@ export const BookingCalendarPage: React.FC = () => {
 
               {/* ================= SISI KANAN ================= */}
               <div className="flex flex-col gap-8 w-full">
-                {/* CARD 3: Ketersediaan Jadwal (Tiap Jam 07:00 - 22:00, Tanpa Data Dummy) */}
+                {/* CARD 3: Ketersediaan Jadwal (Tiap Jam 07:00 - 21:00, Tanpa Data Dummy) */}
                 <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-4 sm:p-7 shadow-xs overflow-hidden">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
                     <div className="min-w-0">
@@ -766,7 +792,9 @@ export const BookingCalendarPage: React.FC = () => {
                         Ketersediaan Jadwal
                       </h3>
                       <p className="text-[12px] text-[#727272] mt-0.5 font-['Poppins']">
-                        {selectedDay} November 2026 • Operasional 07:00 - 22:00
+                        {selectedDay === selectedEndDay
+                          ? `${selectedDay} November 2026`
+                          : `${selectedDay} - ${selectedEndDay} November 2026`} • Operasional 07:00 - 21:00
                       </p>
                     </div>
                     {isLoadingSlots ? (
@@ -907,13 +935,22 @@ export const BookingCalendarPage: React.FC = () => {
                           Tanggal Selesai
                         </label>
                         <div className="relative">
-                          <input
-                            type="text"
-                            disabled
-                            value={endDate}
-                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-slate-50 outline-none cursor-default"
-                          />
-                          <CalendarIcon className="w-4 h-4 text-[#727272] absolute right-3.5 top-3.5 pointer-events-none" />
+                          <select
+                            value={selectedEndDay}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              setSelectedEndDay(val);
+                              setFormError(null);
+                            }}
+                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-white outline-none cursor-pointer pr-10 appearance-none"
+                          >
+                            {Array.from({ length: 30 - selectedDay + 1 }, (_, i) => selectedDay + i).map((d) => (
+                              <option key={d} value={d}>
+                                {String(d).padStart(2, '0')}/11/2026 {d === selectedDay ? '(1 Hari)' : `(${d - selectedDay + 1} Hari)`}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-[#727272] absolute right-3.5 top-3.5 pointer-events-none" />
                         </div>
                       </div>
 

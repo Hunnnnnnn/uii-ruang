@@ -231,6 +231,7 @@ export const adminBookingsApi = {
 
   rejectBooking: async (id: number, reason: string): Promise<{ message: string }> => {
     const response = await apiClient.post<{ message: string }>(`/admin/bookings/${id}/reject`, {
+      reason: reason,
       rejection_reason: reason,
     });
     return response.data;
