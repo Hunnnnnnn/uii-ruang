@@ -7,6 +7,7 @@ import { DatePill } from '../components/layout/DatePill';
 import { useAuth } from '../context/AuthContext';
 import { useBooking } from '../context/BookingContext';
 import { getBookingTimeState } from '../lib/bookingStatus';
+import { Booking } from '../types';
 
 export const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -45,8 +46,26 @@ export const DashboardPage: React.FC = () => {
     return false;
   });
 
-  const handleCancel = async (id: number) => {
-    if (window.confirm('Apakah Anda yakin ingin membatalkan permohonan peminjaman ini?')) {
+  const handleCancel = async (id: number, isApprovedBooking = false, bookingItem?: Booking) => {
+    let confirmMsg = 'Apakah Anda yakin ingin membatalkan permohonan peminjaman ini?';
+    if (isApprovedBooking && bookingItem) {
+      // Hitung sisa jam sebelum acara dimulai (Aturan Tech Spec: Penalti skor -10 jika <= 72 jam)
+      const startDate = bookingItem.date || (bookingItem.start_at ? bookingItem.start_at.slice(0, 10) : '');
+      const sH = bookingItem.daily_start_hour || (bookingItem.start_at ? new Date(bookingItem.start_at).getHours() : 7);
+      const startDateTime = new Date(`${startDate}T${String(sH).padStart(2, '0')}:00:00+07:00`);
+      const now = new Date();
+      const diffHours = (startDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+      if (diffHours < 72) {
+        confirmMsg =
+          'PERINGATAN ATURAN PEMBATALAN (Tech Spec):\nSisa waktu menuju jadwal acara kurang dari 72 jam (H-3).\nPembatalan ini akan dikenakan penalti pemotongan kredit skor -10 poin.\n\nApakah Anda tetap ingin membatalkan peminjaman?';
+      } else {
+        confirmMsg =
+          'Apakah Anda yakin ingin membatalkan peminjaman ini?\n(Pembatalan dilakukan lebih dari 72 jam sebelum acara, tanpa penalti skor).';
+      }
+    }
+
+    if (window.confirm(confirmMsg)) {
       await cancelBooking(id);
       await refreshBookings();
     }
@@ -263,9 +282,18 @@ export const DashboardPage: React.FC = () => {
                         </span>
                       )}
                       {isApproved && !isOngoing && (
-                        <span className="text-[#166534] text-[11.5px] font-medium ml-auto flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Siap Dipakai
-                        </span>
+                        <div className="ml-auto flex items-center gap-3">
+                          <span className="text-[#166534] text-[11.5px] font-medium flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Siap Dipakai
+                          </span>
+                          <button
+                            onClick={() => handleCancel(item.id, true, item)}
+                            className="text-rose-600 hover:text-rose-800 text-[11.5px] font-medium hover:underline cursor-pointer"
+                            title="Batalkan Peminjaman"
+                          >
+                            Batalkan
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

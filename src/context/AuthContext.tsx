@@ -85,13 +85,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (
     email: string,
     password: string = 'password123',
-    role: UserRole = 'mahasiswa'
+    _role: UserRole = 'mahasiswa'
   ): Promise<{ success: boolean; message?: string; user?: User }> => {
     try {
-      const res = await authApi.login(email, password);
+      const cleanEmail = email.trim();
+      const res = await authApi.login(cleanEmail, password);
       const mappedUser: User = {
         ...res.user,
-        nim: res.user.number_id || res.user.nim || '',
+        nim: res.user.number_id || res.user.nim || cleanEmail.split('@')[0],
       };
       setToken(res.token);
       sessionStorage.setItem('uiiruang_token', res.token);
@@ -102,17 +103,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Backend login error:', error);
       const errMsg = getApiErrorMessage(error);
 
-      // Graceful fallback for offline demo testing if network fails
+      // Graceful fallback ONLY for exact email match if network unreachable (BUG_003: Jangan pernah login sebagai akun lain)
       if (
         error.code === 'ERR_NETWORK' ||
         error.message?.includes('Network Error') ||
         error.message?.includes('timeout')
       ) {
+        const cleanEmail = email.trim().toLowerCase();
         const found = MOCK_USERS.find(
-          (u) => u.email.toLowerCase() === email.toLowerCase() || u.role === role
+          (u) => u.email.toLowerCase() === cleanEmail
         );
         if (found) {
-          console.warn('Network unreachable: fallback to mock user demo session');
+          console.warn('Network unreachable: fallback to matching mock user demo session');
           setCurrentUser(found);
           sessionStorage.setItem('uiiruang_user', JSON.stringify(found));
           return { success: true, user: found };

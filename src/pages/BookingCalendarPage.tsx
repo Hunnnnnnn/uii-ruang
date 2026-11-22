@@ -53,14 +53,50 @@ const ALL_END_HOUR_OPTIONS = [
   '20:00', '21:00'
 ];
 
+export const MONTH_NAMES = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+];
+
 export const BookingCalendarPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { rooms, bookings, addBooking } = useBooking();
 
-  // Tanggal hari ini (November 2026)
+  // Tanggal hari ini
   const today = new Date();
-  const todayDay = today.getDate(); // 21
-  const todayFormatted = `${String(todayDay).padStart(2, '0')}/11/2026`;
+  const todayDay = today.getDate();
+
+  // Navigasi Bulan & Tahun Kalender (BUG_006)
+  const [calendarYear, setCalendarYear] = useState<number>(2026);
+  const [calendarMonth, setCalendarMonth] = useState<number>(10); // 10 = November (0-indexed)
+
+  const handlePrevMonth = () => {
+    if (calendarMonth === 0) {
+      setCalendarMonth(11);
+      setCalendarYear((prev) => prev - 1);
+    } else {
+      setCalendarMonth((prev) => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (calendarMonth === 11) {
+      setCalendarMonth(0);
+      setCalendarYear((prev) => prev + 1);
+    } else {
+      setCalendarMonth((prev) => prev + 1);
+    }
+  };
 
   // Fakultas yang sedang dipilih (null = level 1 grid kartu fakultas, non-null = level 2 tabel ruangan)
   const [selectedFaculty, setSelectedFaculty] = useState<string | null>(null);
@@ -72,7 +108,9 @@ export const BookingCalendarPage: React.FC = () => {
   // Form State Detail Peminjaman (Default ke hari ini, mendukung multi-day TC_BOOK_007)
   const [selectedDay, setSelectedDay] = useState<number>(todayDay);
   const [selectedEndDay, setSelectedEndDay] = useState<number>(todayDay);
-  const [startDate, setStartDate] = useState(todayFormatted);
+  const [startDate, setStartDate] = useState(
+    `${String(todayDay).padStart(2, '0')}/${String(calendarMonth + 1).padStart(2, '0')}/${calendarYear}`
+  );
   const [startTime, setStartTime] = useState('07:00');
   const [endTime, setEndTime] = useState('09:00');
   const [eventPurpose, setEventPurpose] = useState('');
@@ -89,14 +127,16 @@ export const BookingCalendarPage: React.FC = () => {
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch live availability from backend when selectedRoom or selectedDay changes
+  // Fetch live availability from backend when selectedRoom, selectedDay, or month changes
   useEffect(() => {
     if (!selectedRoom) {
       setLiveSlots(null);
       return;
     }
 
-    const dateStr = `2026-11-${selectedDay.toString().padStart(2, '0')}`;
+    const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${selectedDay
+      .toString()
+      .padStart(2, '0')}`;
     const roomTypeId = selectedRoom.room_type_id || 1;
     // Hanya query availability backend jika ruangan ada di backend (FTI ID 1-3)
     const backendRoomId = selectedRoom.id <= 3 ? selectedRoom.id : null;
@@ -125,7 +165,7 @@ export const BookingCalendarPage: React.FC = () => {
       .finally(() => {
         setIsLoadingSlots(false);
       });
-  }, [selectedRoom, selectedDay]);
+  }, [selectedRoom, selectedDay, calendarMonth, calendarYear]);
 
   // Status riil per slot jam (07:00 - 21:00) tanpa dummy data (Mendukung pengecekan hari spesifik / multi-day)
   const getSlotStatus = (
@@ -135,7 +175,7 @@ export const BookingCalendarPage: React.FC = () => {
   ): 'terisi' | 'menunggu' | 'kosong' => {
     // 1. Cek dari daftar booking aktif di context (paling akurat dan spesifik per ruangan asli)
     if (selectedRoom) {
-      const dayStr = `2026-11-${String(checkDay).padStart(2, '0')}`;
+      const dayStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(checkDay).padStart(2, '0')}`;
       const conflict = bookings.find((b) => {
         const matchesRoom = b.room_id === selectedRoom.id || b.room?.id === selectedRoom.id;
         const bStartDate = b.date || (b.start_at ? b.start_at.slice(0, 10) : '');
@@ -178,7 +218,7 @@ export const BookingCalendarPage: React.FC = () => {
   // Cek apakah satu hari sudah penuh terisi seluruh jam operasionalnya (07:00 - 21:00)
   const isDayFull = (day: number): boolean => {
     if (!selectedRoom) return false;
-    const dayStr = `2026-11-${String(day).padStart(2, '0')}`;
+    const dayStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
     if (day === selectedDay && liveSlots && liveSlots.length > 0) {
       const allOccupied = liveSlots.every((s) => s.status === 'terisi' || s.status === 'menunggu');
@@ -252,8 +292,13 @@ export const BookingCalendarPage: React.FC = () => {
   };
 
   const handleDayClick = (day: number) => {
-    if (day < todayDay) return;
+    const targetDate = new Date(calendarYear, calendarMonth, day);
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    if (targetDate < todayDate) return;
     if (isDayFull(day)) return;
+
+    const dayStr = day.toString().padStart(2, '0');
+    const mStr = String(calendarMonth + 1).padStart(2, '0');
 
     // Jika belum ada rentang (selectedDay === selectedEndDay) dan user klik tanggal setelahnya, jadikan rentang multi-day (TC_BOOK_007)
     if (selectedDay === selectedEndDay && day > selectedDay) {
@@ -262,8 +307,7 @@ export const BookingCalendarPage: React.FC = () => {
       // Set tanggal mulai baru dan reset tanggal selesai
       setSelectedDay(day);
       setSelectedEndDay(day);
-      const dayStr = day.toString().padStart(2, '0');
-      setStartDate(`${dayStr}/11/2026`);
+      setStartDate(`${dayStr}/${mStr}/${calendarYear}`);
     }
     setFormError(null);
   };
@@ -308,12 +352,37 @@ export const BookingCalendarPage: React.FC = () => {
       return;
     }
 
+    // BUG_010: Validasi dokumen persyaratan wajib untuk ruangan Auditorium / Aula
+    const roomNameLower = (selectedRoom.name || '').toLowerCase();
+    const buildingLower = (selectedRoom.building || '').toLowerCase();
+    const typeLower = (selectedRoom.type_name || '').toLowerCase();
+    const isAuditorium =
+      roomNameLower.includes('auditorium') ||
+      roomNameLower.includes('aula') ||
+      buildingLower.includes('auditorium') ||
+      typeLower.includes('auditorium') ||
+      typeLower.includes('aula');
+
+    if (isAuditorium && !selectedFile) {
+      setFormError(
+        'Sistem menolak pengajuan: Dokumen persyaratan (Bukti Persetujuan .PDF) wajib diunggah sebelum mengajukan peminjaman Auditorium/Aula.'
+      );
+      setIsSubmitting(false);
+      return;
+    }
+
+    const mStr = String(calendarMonth + 1).padStart(2, '0');
+    const startDayStr = selectedDay.toString().padStart(2, '0');
+    const endDayStr = selectedEndDay.toString().padStart(2, '0');
+    const startDateYmd = `${calendarYear}-${mStr}-${startDayStr}`;
+    const endDateYmd = `${calendarYear}-${mStr}-${endDayStr}`;
+
     // Validasi multi-day apakah ada salah satu hari dalam rentang yang bentrok (TC_BOOK_007)
     for (let day = selectedDay; day <= selectedEndDay; day++) {
       for (let h = startH; h < endH; h++) {
         const status = getSlotStatus(h, h + 1, day);
         if (status !== 'kosong') {
-          const dateFormatted = `${String(day).padStart(2, '0')}/11/2026`;
+          const dateFormatted = `${String(day).padStart(2, '0')}/${mStr}/${calendarYear}`;
           const timeLabel = `${String(h).padStart(2, '0')}:00 - ${String(h + 1).padStart(2, '0')}:00`;
           setFormError(
             `Permohonan booking ditolak: Jadwal bentrok pada tanggal ${dateFormatted} (Slot jam ${timeLabel} sudah ${
@@ -332,12 +401,12 @@ export const BookingCalendarPage: React.FC = () => {
         user_id: currentUser?.id || 1,
         purpose: eventPurpose,
         organization_name: atasNama !== 'UKM atau Mahasiswa' ? atasNama : null,
-        date: `2026-11-${selectedDay.toString().padStart(2, '0')}`,
-        end_date: `2026-11-${selectedEndDay.toString().padStart(2, '0')}`,
+        date: startDateYmd,
+        end_date: endDateYmd,
         daily_start_hour: startH,
         daily_end_hour: endH,
-        start_at: `2026-11-${selectedDay.toString().padStart(2, '0')}T${startH.toString().padStart(2, '0')}:00:00+07:00`,
-        end_at: `2026-11-${selectedEndDay.toString().padStart(2, '0')}T${endH.toString().padStart(2, '0')}:00:00+07:00`,
+        start_at: `${startDateYmd}T${startH.toString().padStart(2, '0')}:00:00+07:00`,
+        end_at: `${endDateYmd}T${endH.toString().padStart(2, '0')}:00:00+07:00`,
         permit_docs: fileName ? [fileName] : [],
       },
       selectedFile
@@ -616,23 +685,27 @@ export const BookingCalendarPage: React.FC = () => {
             <form onSubmit={handleSubmitBooking} className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8 w-full">
               {/* ================= SISI KIRI ================= */}
               <div className="flex flex-col gap-8 w-full">
-                {/* CARD 1: November 2026 Kalender Bulan */}
+                {/* CARD 1: Kalender Bulan Interaktif (BUG_006: Navigasi Bulan & Tahun) */}
                 <div className="w-full bg-white border border-[#BABABA] rounded-[16px] p-4 sm:p-7 shadow-xs">
-                  {/* Month Header: November 2026 + Nav Buttons */}
+                  {/* Month Header: Dynamic Month Year + Nav Buttons */}
                   <div className="flex items-center justify-between mb-6">
                     <span className="font-['Poppins'] font-semibold text-[18px] text-[#0B0C0F]">
-                      November 2026
+                      {MONTH_NAMES[calendarMonth]} {calendarYear}
                     </span>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        className="w-8 h-8 rounded-full border border-[#BABABA] flex items-center justify-center hover:bg-slate-50 transition"
+                        onClick={handlePrevMonth}
+                        className="w-8 h-8 rounded-full border border-[#BABABA] flex items-center justify-center hover:bg-slate-50 transition cursor-pointer"
+                        title="Bulan sebelumnya"
                       >
                         <ChevronLeft className="w-4 h-4 text-[#727272]" />
                       </button>
                       <button
                         type="button"
-                        className="w-8 h-8 rounded-full border border-[#BABABA] flex items-center justify-center hover:bg-slate-50 transition"
+                        onClick={handleNextMonth}
+                        className="w-8 h-8 rounded-full border border-[#BABABA] flex items-center justify-center hover:bg-slate-50 transition cursor-pointer"
+                        title="Bulan berikutnya"
                       >
                         <ChevronRight className="w-4 h-4 text-[#727272]" />
                       </button>
@@ -650,78 +723,107 @@ export const BookingCalendarPage: React.FC = () => {
                     <span>Sab</span>
                   </div>
 
-                  {/* Days Matrix */}
-                  <div className="grid grid-cols-7 gap-y-3.5 gap-x-2 text-center font-['Poppins'] text-[15px]">
-                    {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
-                      const isPast = d < todayDay;
-                      const isFull = isDayFull(d);
-                      const isRange = selectedEndDay > selectedDay;
-                      const isSelected = selectedDay === d;
+                  {/* Days Matrix Dinamis (BUG_006) */}
+                  {(() => {
+                    const daysInCurrentMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+                    const firstDayOfWeek = new Date(calendarYear, calendarMonth, 1).getDay(); // 0 = Min, 1 = Sen
+                    const prevMonthDaysCount = new Date(calendarYear, calendarMonth, 0).getDate();
+                    const prevDays = Array.from(
+                      { length: firstDayOfWeek },
+                      (_, idx) => prevMonthDaysCount - firstDayOfWeek + 1 + idx
+                    );
+                    const trailingDaysCount = (7 - ((firstDayOfWeek + daysInCurrentMonth) % 7)) % 7;
+                    const trailingDays = Array.from({ length: trailingDaysCount }, (_, idx) => idx + 1);
 
-                      if (isPast) {
-                        return (
-                          <button
-                            key={d}
-                            type="button"
-                            disabled
-                            className="w-8 h-8 rounded-full flex items-center justify-center mx-auto text-[#CBD5E1] bg-slate-50/50 cursor-not-allowed select-none line-through"
-                            title={`Tanggal ${d} November telah berlalu`}
+                    return (
+                      <div className="grid grid-cols-7 gap-y-3.5 gap-x-2 text-center font-['Poppins'] text-[15px]">
+                        {/* Hari abu-abu dari bulan sebelumnya */}
+                        {prevDays.map((d) => (
+                          <span
+                            key={`prev-${d}`}
+                            className="text-[#CBD5E1] flex items-center justify-center select-none"
                           >
                             {d}
-                          </button>
-                        );
-                      }
+                          </span>
+                        ))}
 
-                      if (isFull) {
-                        return (
-                          <button
-                            key={d}
-                            type="button"
-                            disabled
-                            className="w-8 h-8 rounded-full flex items-center justify-center mx-auto text-rose-500 bg-rose-50 border border-rose-200 cursor-not-allowed font-medium select-none line-through"
-                            title={`Tanggal ${d} November: Jadwal Penuh`}
+                        {/* Hari-hari dalam bulan aktif */}
+                        {Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1).map((d) => {
+                          const targetDate = new Date(calendarYear, calendarMonth, d);
+                          const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                          const isPast = targetDate < todayZero;
+                          const isFull = isDayFull(d);
+                          const isRange = selectedEndDay > selectedDay;
+                          const isSelected = selectedDay === d;
+
+                          if (isPast) {
+                            return (
+                              <button
+                                key={d}
+                                type="button"
+                                disabled
+                                className="w-8 h-8 rounded-full flex items-center justify-center mx-auto text-[#CBD5E1] bg-slate-50/50 cursor-not-allowed select-none line-through"
+                                title={`Tanggal ${d} ${MONTH_NAMES[calendarMonth]} telah berlalu`}
+                              >
+                                {d}
+                              </button>
+                            );
+                          }
+
+                          if (isFull) {
+                            return (
+                              <button
+                                key={d}
+                                type="button"
+                                disabled
+                                className="w-8 h-8 rounded-full flex items-center justify-center mx-auto text-rose-500 bg-rose-50 border border-rose-200 cursor-not-allowed font-medium select-none line-through"
+                                title={`Tanggal ${d} ${MONTH_NAMES[calendarMonth]}: Jadwal Penuh`}
+                              >
+                                {d}
+                              </button>
+                            );
+                          }
+
+                          let dayStyle = 'text-[#0B0C0F] hover:bg-blue-50 hover:text-[#093697] font-normal';
+                          if (isRange) {
+                            if (d === selectedDay) {
+                              dayStyle =
+                                'bg-[#093697] text-white font-bold rounded-l-full shadow-xs ring-2 ring-[#093697]/30';
+                            } else if (d === selectedEndDay) {
+                              dayStyle =
+                                'bg-[#093697] text-white font-bold rounded-r-full shadow-xs ring-2 ring-[#093697]/30';
+                            } else if (d > selectedDay && d < selectedEndDay) {
+                              dayStyle = 'bg-blue-100 text-[#093697] font-semibold rounded-none';
+                            }
+                          } else if (isSelected) {
+                            dayStyle = 'bg-[#093697] text-white font-bold shadow-xs ring-2 ring-[#093697]/30';
+                          }
+
+                          return (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => handleDayClick(d)}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition cursor-pointer ${dayStyle}`}
+                              title={`Pilih tanggal ${d} ${MONTH_NAMES[calendarMonth]} ${calendarYear}`}
+                            >
+                              {d}
+                            </button>
+                          );
+                        })}
+
+                        {/* Sisa hari bulan berikutnya abu-abu */}
+                        {trailingDays.map((d) => (
+                          <span
+                            key={`next-${d}`}
+                            className="text-[#CBD5E1] flex items-center justify-center select-none"
                           >
                             {d}
-                          </button>
-                        );
-                      }
-
-                      let dayStyle = 'text-[#0B0C0F] hover:bg-blue-50 hover:text-[#093697] font-normal';
-                      if (isRange) {
-                        if (d === selectedDay) {
-                          dayStyle = 'bg-[#093697] text-white font-bold rounded-l-full shadow-xs ring-2 ring-[#093697]/30';
-                        } else if (d === selectedEndDay) {
-                          dayStyle = 'bg-[#093697] text-white font-bold rounded-r-full shadow-xs ring-2 ring-[#093697]/30';
-                        } else if (d > selectedDay && d < selectedEndDay) {
-                          dayStyle = 'bg-blue-100 text-[#093697] font-semibold rounded-none';
-                        }
-                      } else if (isSelected) {
-                        dayStyle = 'bg-[#093697] text-white font-bold shadow-xs ring-2 ring-[#093697]/30';
-                      }
-
-                      return (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => handleDayClick(d)}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition cursor-pointer ${dayStyle}`}
-                          title={`Pilih tanggal ${d} November 2026`}
-                        >
-                          {d}
-                        </button>
-                      );
-                    })}
-
-                    {/* Sisa hari bulan berikutnya (1-5 Desember) abu-abu */}
-                    {[1, 2, 3, 4, 5].map((d) => (
-                      <span
-                        key={`next-${d}`}
-                        className="text-[#BABABA] flex items-center justify-center select-none"
-                      >
-                        {d}
-                      </span>
-                    ))}
-                  </div>
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* CARD 2: Dokumen Persyaratan */}
@@ -793,8 +895,8 @@ export const BookingCalendarPage: React.FC = () => {
                       </h3>
                       <p className="text-[12px] text-[#727272] mt-0.5 font-['Poppins']">
                         {selectedDay === selectedEndDay
-                          ? `${selectedDay} November 2026`
-                          : `${selectedDay} - ${selectedEndDay} November 2026`} • Operasional 07:00 - 21:00
+                          ? `${selectedDay} ${MONTH_NAMES[calendarMonth]} ${calendarYear}`
+                          : `${selectedDay} - ${selectedEndDay} ${MONTH_NAMES[calendarMonth]} ${calendarYear}`} • Operasional 07:00 - 21:00
                       </p>
                     </div>
                     {isLoadingSlots ? (

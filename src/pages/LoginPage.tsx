@@ -426,7 +426,6 @@ export const LoginPage: React.FC = () => {
                       onClick={() => {
                         setMode('register');
                         setRole('mahasiswa');
-                        setEmail('24523014@students.uii.ac.id');
                         setEmailError(null);
                         setPasswordError(null);
                         setGeneralError(null);

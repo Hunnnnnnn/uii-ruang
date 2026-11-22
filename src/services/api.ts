@@ -254,6 +254,17 @@ export const adminBookingsApi = {
     );
     return response.data;
   },
+
+  moveBooking: async (
+    id: number,
+    payload: { to_room_id: number; reason: string }
+  ): Promise<{ message: string; data?: Booking }> => {
+    const response = await apiClient.post<{ message: string; data?: Booking }>(
+      `/admin/bookings/${id}/move`,
+      payload
+    );
+    return response.data;
+  },
 };
 
 export const damageReportsApi = {

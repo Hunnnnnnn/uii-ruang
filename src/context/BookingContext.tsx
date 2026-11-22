@@ -47,6 +47,11 @@ interface BookingContextType {
     bookingId: number,
     reason: string
   ) => Promise<{ success: boolean; message?: string }>;
+  moveBooking: (
+    bookingId: number,
+    toRoomId: number,
+    reason: string
+  ) => Promise<{ success: boolean; message?: string }>;
   cancelBooking: (
     bookingId: number,
     reason?: string
@@ -680,6 +685,52 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return { success: true };
   };
 
+  const moveBooking = async (
+    bookingId: number,
+    toRoomId: number,
+    reason: string
+  ): Promise<{ success: boolean; message?: string }> => {
+    if (!reason || reason.trim().length < 10) {
+      return { success: false, message: 'Alasan pemindahan ruangan minimal 10 karakter' };
+    }
+
+    const targetRoom = rooms.find((r) => r.id === toRoomId);
+    if (!targetRoom) {
+      return { success: false, message: 'Ruangan tujuan tidak ditemukan' };
+    }
+
+    // Backend room ID mapping
+    const backendToRoomId = toRoomId <= 6 ? toRoomId : ((toRoomId - 1) % 6) + 1;
+
+    try {
+      await adminBookingsApi.moveBooking(bookingId, {
+        to_room_id: backendToRoomId,
+        reason: reason.trim(),
+      });
+    } catch (e: any) {
+      console.warn('Backend moveBooking error:', e);
+      if (e.response && (e.response.status === 409 || e.response.status === 403 || e.response.status === 422)) {
+        return { success: false, message: getApiErrorMessage(e) };
+      }
+    }
+
+    saveBookingRoomMapping(bookingId, toRoomId, targetRoom);
+
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId
+          ? {
+              ...b,
+              room_id: toRoomId,
+              room: targetRoom,
+            }
+          : b
+      )
+    );
+
+    return { success: true };
+  };
+
   const cancelBooking = async (
     bookingId: number,
     _reason?: string
@@ -855,6 +906,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         createAdminBooking,
         approveBooking,
         rejectBooking,
+        moveBooking,
         cancelBooking,
         addDamageReport,
         resolveDamageReport,
