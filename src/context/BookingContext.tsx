@@ -221,7 +221,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       } else {
         const myBookings = await bookingsApi.getMyBookings();
-        const relevantPast = PAST_ELIGIBLE_BOOKINGS.filter(
+        let relevantPast = PAST_ELIGIBLE_BOOKINGS.filter(
           (p) =>
             p.user_id === currentUser.id ||
             p.user?.id === currentUser.id ||
@@ -229,6 +229,27 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             String(p.user?.number_id) === String(currentUser.number_id) ||
             p.user?.email === currentUser.email
         );
+
+        // Jika akun mahasiswa ini belum ada di list dummy spesifik, sediakan 1 default booking lampau di FTI 3.14
+        if (relevantPast.length === 0) {
+          const defaultPast: Booking = {
+            id: 900 + (currentUser.id || 1),
+            user_id: currentUser.id || 1,
+            user: currentUser,
+            room_id: 1, // FTI - 3.14 (IFP)
+            room: rooms.find((r) => r.id === 1) || MOCK_ROOMS[0],
+            date: '2026-11-20',
+            daily_start_hour: 8,
+            daily_end_hour: 10,
+            start_at: '2026-11-20T08:00:00+07:00',
+            end_at: '2026-11-20T10:00:00+07:00',
+            purpose: 'Kuliah Pemrograman dan Praktikum IFP',
+            status: 'disetujui',
+            created_at: '2026-11-15T08:00:00+07:00',
+          };
+          relevantPast = [defaultPast];
+        }
+
         if (Array.isArray(myBookings)) {
           const normalized = myBookings.map((b) => normalizeBookingItem(b, rooms));
           const map = new Map<number, Booking>();
