@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Search,
   ChevronLeft,
@@ -67,17 +67,57 @@ export const MONTH_NAMES = [
   'Desember',
 ];
 
+const DAY_NAMES_ID = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+// Format YYYY-MM-DD ke DD/MM/YYYY
+export const formatYmdToDmy = (ymd: string): string => {
+  if (!ymd) return '';
+  const [y, m, d] = ymd.split('-');
+  return `${d}/${m}/${y}`;
+};
+
+// Format YYYY-MM-DD ke Label Indonesia, mis. "28 November 2026"
+export const formatYmdToLabel = (ymd: string): string => {
+  if (!ymd) return '';
+  const [y, m, d] = ymd.split('-');
+  const mIdx = parseInt(m, 10) - 1;
+  return `${parseInt(d, 10)} ${MONTH_NAMES[mIdx]} ${y}`;
+};
+
+// Format YYYY-MM-DD lengkap dengan nama hari, mis. "Sen, 23 Nov 2026"
+export const formatYmdWithDay = (ymd: string): string => {
+  if (!ymd) return '';
+  const [y, m, d] = ymd.split('-');
+  const dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+  const dayName = DAY_NAMES_ID[dateObj.getDay()];
+  const mIdx = parseInt(m, 10) - 1;
+  return `${dayName}, ${parseInt(d, 10)} ${MONTH_NAMES[mIdx].slice(0, 3)} ${y}`;
+};
+
+// Hitung durasi hari secara inklusif
+export const getDaysDuration = (startStr: string, endStr: string): number => {
+  if (!startStr || !endStr) return 1;
+  const s = new Date(startStr + 'T00:00:00');
+  const e = new Date(endStr + 'T00:00:00');
+  const diffTime = e.getTime() - s.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  return Math.max(1, diffDays);
+};
+
 export const BookingCalendarPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { rooms, bookings, addBooking } = useBooking();
 
   // Tanggal hari ini
   const today = new Date();
-  const todayDay = today.getDate();
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth() + 1;
+  const todayDate = today.getDate();
+  const todayYmd = `${todayYear}-${String(todayMonth).padStart(2, '0')}-${String(todayDate).padStart(2, '0')}`;
 
   // Navigasi Bulan & Tahun Kalender (BUG_006)
-  const [calendarYear, setCalendarYear] = useState<number>(2026);
-  const [calendarMonth, setCalendarMonth] = useState<number>(10); // 10 = November (0-indexed)
+  const [calendarYear, setCalendarYear] = useState<number>(todayYear);
+  const [calendarMonth, setCalendarMonth] = useState<number>(today.getMonth()); // 0-indexed
 
   const handlePrevMonth = () => {
     if (calendarMonth === 0) {
@@ -104,11 +144,14 @@ export const BookingCalendarPage: React.FC = () => {
   // Ruangan yang sedang dipilih (null = tabel ruangan, non-null = tampilan 4 card booking Figma)
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
 
-  // Form State Detail Peminjaman (Default ke hari ini, mendukung multi-day TC_BOOK_007)
-  const [selectedDay, setSelectedDay] = useState<number>(todayDay);
-  const [selectedEndDay, setSelectedEndDay] = useState<number>(todayDay);
-  const startDate = `${String(selectedDay).padStart(2, '0')}/${String(calendarMonth + 1).padStart(2, '0')}/${calendarYear}`;
-  const endDate = `${String(selectedEndDay).padStart(2, '0')}/${String(calendarMonth + 1).padStart(2, '0')}/${calendarYear}`;
+  // Form State Detail Peminjaman (Default ke hari ini, mendukung multi-day rentang lintas bulan TC_BOOK_007)
+  const [selectedStartDate, setSelectedStartDate] = useState<string>(todayYmd);
+  const [selectedEndDate, setSelectedEndDate] = useState<string>(todayYmd);
+  const [startDateDropdownOpen, setStartDateDropdownOpen] = useState(false);
+  const [endDateDropdownOpen, setEndDateDropdownOpen] = useState(false);
+  const startDateRef = useRef<HTMLDivElement>(null);
+  const endDateRef = useRef<HTMLDivElement>(null);
+
   const [startTime, setStartTime] = useState('07:00');
   const [endTime, setEndTime] = useState('09:00');
   const [eventPurpose, setEventPurpose] = useState('');
@@ -116,6 +159,49 @@ export const BookingCalendarPage: React.FC = () => {
   const [atasNama, setAtasNama] = useState('UKM atau Mahasiswa');
   const [fileName, setFileName] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Opsi dropdown tanggal mulai (60 hari ke depan dari hari ini)
+  const startDateOptions = useMemo(() => {
+    const opts: string[] = [];
+    const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    for (let i = 0; i < 60; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      opts.push(ymd);
+    }
+    return opts;
+  }, []);
+
+  // Opsi dropdown tanggal selesai (hingga 30 hari ke depan dari selectedStartDate)
+  const endDateOptions = useMemo(() => {
+    const opts: { ymd: string; days: number }[] = [];
+    if (!selectedStartDate) return opts;
+    const base = new Date(selectedStartDate + 'T00:00:00');
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      opts.push({ ymd, days: i + 1 });
+    }
+    return opts;
+  }, [selectedStartDate]);
+
+  // Tutup dropdown popover saat klik di luar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (startDateRef.current && !startDateRef.current.contains(event.target as Node)) {
+        setStartDateDropdownOpen(false);
+      }
+      if (endDateRef.current && !endDateRef.current.contains(event.target as Node)) {
+        setEndDateDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Live Slot Availability State
   const [liveSlots, setLiveSlots] = useState<AvailabilitySlot[] | null>(null);
@@ -125,16 +211,14 @@ export const BookingCalendarPage: React.FC = () => {
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch live availability from backend when selectedRoom, selectedDay, or month changes
+  // Fetch live availability from backend when selectedRoom or selectedStartDate changes
   useEffect(() => {
     if (!selectedRoom) {
       setLiveSlots(null);
       return;
     }
 
-    const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${selectedDay
-      .toString()
-      .padStart(2, '0')}`;
+    const dateStr = selectedStartDate;
     const roomTypeId = selectedRoom.room_type_id || 1;
     // Hanya query availability backend jika ruangan ada di backend (FTI ID 1-3)
     const backendRoomId = selectedRoom.id <= 3 ? selectedRoom.id : null;
@@ -163,22 +247,21 @@ export const BookingCalendarPage: React.FC = () => {
       .finally(() => {
         setIsLoadingSlots(false);
       });
-  }, [selectedRoom, selectedDay, calendarMonth, calendarYear]);
+  }, [selectedRoom, selectedStartDate]);
 
-  // Status riil per slot jam (07:00 - 21:00) tanpa dummy data (Mendukung pengecekan hari spesifik / multi-day)
+  // Status riil per slot jam (07:00 - 21:00) tanpa dummy data (Mendukung pengecekan tanggal spesifik / multi-day lintas bulan)
   const getSlotStatus = (
     startH: number,
     endH: number,
-    checkDay: number = selectedDay
+    checkYmd: string = selectedStartDate
   ): 'terisi' | 'menunggu' | 'kosong' => {
     // 1. Cek dari daftar booking aktif di context (paling akurat dan spesifik per ruangan asli)
     if (selectedRoom) {
-      const dayStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(checkDay).padStart(2, '0')}`;
       const conflict = bookings.find((b) => {
         const matchesRoom = b.room_id === selectedRoom.id || b.room?.id === selectedRoom.id;
         const bStartDate = b.date || (b.start_at ? b.start_at.slice(0, 10) : '');
         const bEndDate = b.end_date || bStartDate;
-        const matchesDate = bStartDate <= dayStr && dayStr <= bEndDate;
+        const matchesDate = bStartDate <= checkYmd && checkYmd <= bEndDate;
         if (!matchesRoom || !matchesDate) return false;
 
         const bStart = b.daily_start_hour || (b.start_at ? new Date(b.start_at).getHours() : 0);
@@ -194,7 +277,7 @@ export const BookingCalendarPage: React.FC = () => {
     }
 
     // 2. Cek dari backend availability untuk ruangan yang memang terdaftar di server
-    if (checkDay === selectedDay && selectedRoom && selectedRoom.id <= 3 && liveSlots && liveSlots.length > 0) {
+    if (checkYmd === selectedStartDate && selectedRoom && selectedRoom.id <= 3 && liveSlots && liveSlots.length > 0) {
       const match = liveSlots.find((s) => {
         let h = s.hour;
         if (h === undefined && s.start) {
@@ -213,12 +296,11 @@ export const BookingCalendarPage: React.FC = () => {
     return 'kosong';
   };
 
-  // Cek apakah satu hari sudah penuh terisi seluruh jam operasionalnya (07:00 - 21:00)
-  const isDayFull = (day: number): boolean => {
+  // Cek apakah satu tanggal sudah penuh terisi seluruh jam operasionalnya (07:00 - 21:00)
+  const isDateFull = (ymd: string): boolean => {
     if (!selectedRoom) return false;
-    const dayStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-    if (day === selectedDay && liveSlots && liveSlots.length > 0) {
+    if (ymd === selectedStartDate && liveSlots && liveSlots.length > 0) {
       const allOccupied = liveSlots.every((s) => s.status === 'terisi' || s.status === 'menunggu');
       if (allOccupied) return true;
     }
@@ -226,7 +308,7 @@ export const BookingCalendarPage: React.FC = () => {
     const roomBookings = bookings.filter(
       (b) =>
         (b.room_id === selectedRoom.id || b.room?.id === selectedRoom.id) &&
-        (b.date === dayStr || b.start_at?.startsWith(dayStr)) &&
+        (b.date === ymd || b.start_at?.startsWith(ymd)) &&
         (b.status === 'terkonfirmasi' || b.status === 'disetujui' || b.status === 'diajukan')
     );
 
@@ -289,20 +371,37 @@ export const BookingCalendarPage: React.FC = () => {
     setFormSuccess(null);
   };
 
-  const handleDayClick = (day: number) => {
-    const targetDate = new Date(calendarYear, calendarMonth, day);
-    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    if (targetDate < todayDate) return;
-    if (isDayFull(day)) return;
+  const handleDayClick = (clickedYmd: string) => {
+    if (clickedYmd < todayYmd) return;
+    if (isDateFull(clickedYmd)) return;
 
-    // Jika belum ada rentang (selectedDay === selectedEndDay) dan user klik tanggal setelahnya, jadikan rentang multi-day (TC_BOOK_007)
-    if (selectedDay === selectedEndDay && day > selectedDay) {
-      setSelectedEndDay(day);
+    // Jika belum ada rentang (selectedStartDate === selectedEndDate) dan user klik tanggal setelahnya, jadikan rentang multi-day (TC_BOOK_007)
+    if (selectedStartDate === selectedEndDate && clickedYmd > selectedStartDate) {
+      setSelectedEndDate(clickedYmd);
     } else {
       // Set tanggal mulai baru dan reset tanggal selesai
-      setSelectedDay(day);
-      setSelectedEndDay(day);
+      setSelectedStartDate(clickedYmd);
+      setSelectedEndDate(clickedYmd);
     }
+    setFormError(null);
+  };
+
+  const handleSelectStartDate = (ymd: string) => {
+    setSelectedStartDate(ymd);
+    if (selectedEndDate < ymd) {
+      setSelectedEndDate(ymd);
+    }
+    // Sinkronkan bulan kalender jika memilih tanggal di bulan lain
+    const [y, m] = ymd.split('-');
+    setCalendarYear(parseInt(y, 10));
+    setCalendarMonth(parseInt(m, 10) - 1);
+    setStartDateDropdownOpen(false);
+    setFormError(null);
+  };
+
+  const handleSelectEndDate = (ymd: string) => {
+    setSelectedEndDate(ymd);
+    setEndDateDropdownOpen(false);
     setFormError(null);
   };
 
@@ -365,18 +464,20 @@ export const BookingCalendarPage: React.FC = () => {
       return;
     }
 
-    const mStr = String(calendarMonth + 1).padStart(2, '0');
-    const startDayStr = selectedDay.toString().padStart(2, '0');
-    const endDayStr = selectedEndDay.toString().padStart(2, '0');
-    const startDateYmd = `${calendarYear}-${mStr}-${startDayStr}`;
-    const endDateYmd = `${calendarYear}-${mStr}-${endDayStr}`;
+    const sDate = new Date(selectedStartDate + 'T00:00:00');
+    const eDate = new Date(selectedEndDate + 'T00:00:00');
 
-    // Validasi multi-day apakah ada salah satu hari dalam rentang yang bentrok (TC_BOOK_007)
-    for (let day = selectedDay; day <= selectedEndDay; day++) {
+    // Validasi multi-day apakah ada salah satu hari dalam rentang yang bentrok lintas bulan (TC_BOOK_007)
+    for (let d = new Date(sDate); d <= eDate; d.setDate(d.getDate() + 1)) {
+      const curY = d.getFullYear();
+      const curM = String(d.getMonth() + 1).padStart(2, '0');
+      const curD = String(d.getDate()).padStart(2, '0');
+      const curYmd = `${curY}-${curM}-${curD}`;
+
       for (let h = startH; h < endH; h++) {
-        const status = getSlotStatus(h, h + 1, day);
+        const status = getSlotStatus(h, h + 1, curYmd);
         if (status !== 'kosong') {
-          const dateFormatted = `${String(day).padStart(2, '0')}/${mStr}/${calendarYear}`;
+          const dateFormatted = `${curD}/${curM}/${curY}`;
           const timeLabel = `${String(h).padStart(2, '0')}:00 - ${String(h + 1).padStart(2, '0')}:00`;
           setFormError(
             `Permohonan booking ditolak: Jadwal bentrok pada tanggal ${dateFormatted} (Slot jam ${timeLabel} sudah ${
@@ -395,12 +496,12 @@ export const BookingCalendarPage: React.FC = () => {
         user_id: currentUser?.id || 1,
         purpose: eventPurpose,
         organization_name: atasNama !== 'UKM atau Mahasiswa' ? atasNama : null,
-        date: startDateYmd,
-        end_date: endDateYmd,
+        date: selectedStartDate,
+        end_date: selectedEndDate,
         daily_start_hour: startH,
         daily_end_hour: endH,
-        start_at: `${startDateYmd}T${startH.toString().padStart(2, '0')}:00:00+07:00`,
-        end_at: `${endDateYmd}T${endH.toString().padStart(2, '0')}:00:00+07:00`,
+        start_at: `${selectedStartDate}T${startH.toString().padStart(2, '0')}:00:00+07:00`,
+        end_at: `${selectedEndDate}T${endH.toString().padStart(2, '0')}:00:00+07:00`,
         permit_docs: fileName ? [fileName] : [],
       },
       selectedFile
@@ -729,92 +830,91 @@ export const BookingCalendarPage: React.FC = () => {
                     const trailingDaysCount = (7 - ((firstDayOfWeek + daysInCurrentMonth) % 7)) % 7;
                     const trailingDays = Array.from({ length: trailingDaysCount }, (_, idx) => idx + 1);
 
+                    const prevMonthYear = calendarMonth === 0 ? calendarYear - 1 : calendarYear;
+                    const prevMonth = calendarMonth === 0 ? 11 : calendarMonth - 1;
+                    const nextMonthYear = calendarMonth === 11 ? calendarYear + 1 : calendarYear;
+                    const nextMonth = calendarMonth === 11 ? 0 : calendarMonth + 1;
+
+                    const renderDayCell = (d: number, year: number, month: number, isCurrentMonth: boolean) => {
+                      const ymd = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                      const isPast = ymd < todayYmd;
+                      const isFull = isDateFull(ymd);
+                      const isRange = selectedEndDate > selectedStartDate;
+                      const isStart = ymd === selectedStartDate;
+                      const isEnd = ymd === selectedEndDate;
+                      const isInBetween = isRange && ymd > selectedStartDate && ymd < selectedEndDate;
+
+                      if (isPast) {
+                        return (
+                          <button
+                            key={ymd}
+                            type="button"
+                            disabled
+                            className="w-8 h-8 rounded-full flex items-center justify-center mx-auto text-[#CBD5E1] bg-slate-50/50 cursor-not-allowed select-none line-through"
+                            title={`Tanggal ${d} ${MONTH_NAMES[month]} telah berlalu`}
+                          >
+                            {d}
+                          </button>
+                        );
+                      }
+
+                      if (isFull) {
+                        return (
+                          <button
+                            key={ymd}
+                            type="button"
+                            disabled
+                            className="w-8 h-8 rounded-full flex items-center justify-center mx-auto text-rose-500 bg-rose-50 border border-rose-200 cursor-not-allowed font-medium select-none line-through"
+                            title={`Tanggal ${d} ${MONTH_NAMES[month]}: Jadwal Penuh`}
+                          >
+                            {d}
+                          </button>
+                        );
+                      }
+
+                      let cellStyle = isCurrentMonth
+                        ? 'text-[#0B0C0F] hover:bg-blue-50 hover:text-[#093697] font-normal'
+                        : 'text-[#94A3B8] hover:bg-blue-50/70 hover:text-[#093697] font-normal';
+
+                      if (isRange) {
+                        if (isStart) {
+                          cellStyle =
+                            'bg-[#093697] text-white font-bold rounded-l-full shadow-xs ring-2 ring-[#093697]/30';
+                        } else if (isEnd) {
+                          cellStyle =
+                            'bg-[#093697] text-white font-bold rounded-r-full shadow-xs ring-2 ring-[#093697]/30';
+                        } else if (isInBetween) {
+                          cellStyle = 'bg-blue-100 text-[#093697] font-semibold rounded-none';
+                        }
+                      } else if (isStart) {
+                        cellStyle = 'bg-[#093697] text-white font-bold shadow-xs ring-2 ring-[#093697]/30';
+                      }
+
+                      return (
+                        <button
+                          key={ymd}
+                          type="button"
+                          onClick={() => handleDayClick(ymd)}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition cursor-pointer ${cellStyle}`}
+                          title={`Pilih tanggal ${d} ${MONTH_NAMES[month]} ${year}`}
+                        >
+                          {d}
+                        </button>
+                      );
+                    };
+
                     return (
                       <div className="grid grid-cols-7 gap-y-3.5 gap-x-2 text-center font-['Poppins'] text-[15px]">
-                        {/* Hari abu-abu dari bulan sebelumnya */}
-                        {prevDays.map((d) => (
-                          <span
-                            key={`prev-${d}`}
-                            className="text-[#CBD5E1] flex items-center justify-center select-none"
-                          >
-                            {d}
-                          </span>
-                        ))}
+                        {/* Hari abu-abu dari bulan sebelumnya (bisa diklik) */}
+                        {prevDays.map((d) => renderDayCell(d, prevMonthYear, prevMonth, false))}
 
                         {/* Hari-hari dalam bulan aktif */}
-                        {Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1).map((d) => {
-                          const targetDate = new Date(calendarYear, calendarMonth, d);
-                          const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                          const isPast = targetDate < todayZero;
-                          const isFull = isDayFull(d);
-                          const isRange = selectedEndDay > selectedDay;
-                          const isSelected = selectedDay === d;
+                        {Array.from({ length: daysInCurrentMonth }, (_, i) => i + 1).map((d) =>
+                          renderDayCell(d, calendarYear, calendarMonth, true)
+                        )}
 
-                          if (isPast) {
-                            return (
-                              <button
-                                key={d}
-                                type="button"
-                                disabled
-                                className="w-8 h-8 rounded-full flex items-center justify-center mx-auto text-[#CBD5E1] bg-slate-50/50 cursor-not-allowed select-none line-through"
-                                title={`Tanggal ${d} ${MONTH_NAMES[calendarMonth]} telah berlalu`}
-                              >
-                                {d}
-                              </button>
-                            );
-                          }
-
-                          if (isFull) {
-                            return (
-                              <button
-                                key={d}
-                                type="button"
-                                disabled
-                                className="w-8 h-8 rounded-full flex items-center justify-center mx-auto text-rose-500 bg-rose-50 border border-rose-200 cursor-not-allowed font-medium select-none line-through"
-                                title={`Tanggal ${d} ${MONTH_NAMES[calendarMonth]}: Jadwal Penuh`}
-                              >
-                                {d}
-                              </button>
-                            );
-                          }
-
-                          let dayStyle = 'text-[#0B0C0F] hover:bg-blue-50 hover:text-[#093697] font-normal';
-                          if (isRange) {
-                            if (d === selectedDay) {
-                              dayStyle =
-                                'bg-[#093697] text-white font-bold rounded-l-full shadow-xs ring-2 ring-[#093697]/30';
-                            } else if (d === selectedEndDay) {
-                              dayStyle =
-                                'bg-[#093697] text-white font-bold rounded-r-full shadow-xs ring-2 ring-[#093697]/30';
-                            } else if (d > selectedDay && d < selectedEndDay) {
-                              dayStyle = 'bg-blue-100 text-[#093697] font-semibold rounded-none';
-                            }
-                          } else if (isSelected) {
-                            dayStyle = 'bg-[#093697] text-white font-bold shadow-xs ring-2 ring-[#093697]/30';
-                          }
-
-                          return (
-                            <button
-                              key={d}
-                              type="button"
-                              onClick={() => handleDayClick(d)}
-                              className={`w-8 h-8 rounded-full flex items-center justify-center mx-auto transition cursor-pointer ${dayStyle}`}
-                              title={`Pilih tanggal ${d} ${MONTH_NAMES[calendarMonth]} ${calendarYear}`}
-                            >
-                              {d}
-                            </button>
-                          );
-                        })}
-
-                        {/* Sisa hari bulan berikutnya abu-abu */}
-                        {trailingDays.map((d) => (
-                          <span
-                            key={`next-${d}`}
-                            className="text-[#CBD5E1] flex items-center justify-center select-none"
-                          >
-                            {d}
-                          </span>
-                        ))}
+                        {/* Sisa hari bulan berikutnya (bisa diklik) */}
+                        {trailingDays.map((d) => renderDayCell(d, nextMonthYear, nextMonth, false))}
                       </div>
                     );
                   })()}
@@ -892,9 +992,9 @@ export const BookingCalendarPage: React.FC = () => {
                         Ketersediaan Jadwal
                       </h3>
                       <p className="text-[12px] text-[#727272] mt-0.5 font-['Poppins']">
-                        {selectedDay === selectedEndDay
-                          ? `${selectedDay} ${MONTH_NAMES[calendarMonth]} ${calendarYear}`
-                          : `${selectedDay} - ${selectedEndDay} ${MONTH_NAMES[calendarMonth]} ${calendarYear}`} • Operasional 07:00 - 21:00
+                        {selectedStartDate === selectedEndDate
+                          ? formatYmdToLabel(selectedStartDate)
+                          : `${formatYmdToLabel(selectedStartDate)} - ${formatYmdToLabel(selectedEndDate)}`} • Operasional 07:00 - 21:00
                       </p>
                     </div>
                     {isLoadingSlots ? (
@@ -987,14 +1087,45 @@ export const BookingCalendarPage: React.FC = () => {
                         <label className="block text-[14px] font-medium text-[#0B0C0F] mb-1.5">
                           Tanggal Mulai
                         </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            disabled
-                            value={startDate}
-                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-slate-50 outline-none cursor-default"
-                          />
-                          <CalendarIcon className="w-4 h-4 text-[#727272] absolute right-3.5 top-3.5 pointer-events-none" />
+                        <div className="relative" ref={startDateRef}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStartDateDropdownOpen(!startDateDropdownOpen);
+                              setEndDateDropdownOpen(false);
+                            }}
+                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-white hover:border-[#093697] flex items-center justify-between text-left transition cursor-pointer shadow-xs"
+                          >
+                            <span>{formatYmdToDmy(selectedStartDate)}</span>
+                            <CalendarIcon className="w-4 h-4 text-[#727272] shrink-0 pointer-events-none" />
+                          </button>
+
+                          {startDateDropdownOpen && (
+                            <div className="absolute left-0 top-full mt-1.5 w-full bg-white border border-[#BABABA] rounded-[8px] shadow-lg max-h-56 overflow-y-auto z-30 py-1 font-['Poppins']">
+                              {startDateOptions.map((ymd) => {
+                                const isSelected = ymd === selectedStartDate;
+                                return (
+                                  <button
+                                    key={ymd}
+                                    type="button"
+                                    onClick={() => handleSelectStartDate(ymd)}
+                                    className={`w-full px-3.5 py-2 text-left text-[13px] flex items-center justify-between transition cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-blue-50 text-[#093697] font-semibold'
+                                        : 'text-[#0B0C0F] hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    <span>{formatYmdWithDay(ymd)}</span>
+                                    {isSelected && (
+                                      <span className="text-[11px] bg-[#093697] text-white px-1.5 py-0.5 rounded">
+                                        Dipilih
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -1033,14 +1164,49 @@ export const BookingCalendarPage: React.FC = () => {
                         <label className="block text-[14px] font-medium text-[#0B0C0F] mb-1.5">
                           Tanggal Selesai
                         </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            disabled
-                            value={endDate}
-                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-slate-50 outline-none cursor-default"
-                          />
-                          <CalendarIcon className="w-4 h-4 text-[#727272] absolute right-3.5 top-3.5 pointer-events-none" />
+                        <div className="relative" ref={endDateRef}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEndDateDropdownOpen(!endDateDropdownOpen);
+                              setStartDateDropdownOpen(false);
+                            }}
+                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-white hover:border-[#093697] flex items-center justify-between text-left transition cursor-pointer shadow-xs"
+                          >
+                            <span>
+                              {formatYmdToDmy(selectedEndDate)} ({getDaysDuration(selectedStartDate, selectedEndDate)} Hari)
+                            </span>
+                            <CalendarIcon className="w-4 h-4 text-[#727272] shrink-0 pointer-events-none" />
+                          </button>
+
+                          {endDateDropdownOpen && (
+                            <div className="absolute left-0 top-full mt-1.5 w-full bg-white border border-[#BABABA] rounded-[8px] shadow-lg max-h-56 overflow-y-auto z-30 py-1 font-['Poppins']">
+                              {endDateOptions.map((opt) => {
+                                const isSelected = opt.ymd === selectedEndDate;
+                                return (
+                                  <button
+                                    key={opt.ymd}
+                                    type="button"
+                                    onClick={() => handleSelectEndDate(opt.ymd)}
+                                    className={`w-full px-3.5 py-2 text-left text-[13px] flex items-center justify-between transition cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-blue-50 text-[#093697] font-semibold'
+                                        : 'text-[#0B0C0F] hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    <span>
+                                      {formatYmdWithDay(opt.ymd)} ({opt.days} Hari)
+                                    </span>
+                                    {isSelected && (
+                                      <span className="text-[11px] bg-[#093697] text-white px-1.5 py-0.5 rounded">
+                                        Dipilih
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
 
