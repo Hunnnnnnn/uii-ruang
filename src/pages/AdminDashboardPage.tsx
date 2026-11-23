@@ -94,9 +94,11 @@ export const AdminDashboardPage: React.FC = () => {
     (b) => b.status === 'disetujui' || b.status === 'terkonfirmasi'
   );
 
-  const todayBookings = approvedBookings.filter(
-    (b) => b.date === todayStr || (b.start_at && b.start_at.startsWith(todayStr))
-  );
+  const todayBookings = approvedBookings.filter((b) => {
+    const sDate = b.date || (b.start_at ? b.start_at.slice(0, 10) : '');
+    const eDate = b.end_date || sDate;
+    return sDate <= todayStr && todayStr <= eDate;
+  });
 
   const displayActivities =
     todayBookings.length > 0 ? todayBookings : approvedBookings.slice(0, 4);
@@ -260,7 +262,7 @@ export const AdminDashboardPage: React.FC = () => {
                   {/* Header Table matching Figma column names */}
                   <div className="bg-[#093697] text-white h-[44px] flex items-center px-6 font-['Poppins'] text-[14px] font-medium">
                     <span className="w-[32%] min-w-[120px]">NIM Peminjam</span>
-                    <span className="w-[46%] min-w-[160px]">Ruan</span>
+                    <span className="w-[46%] min-w-[160px]">Ruangan</span>
                     <span className="w-[22%] min-w-[120px] text-center">Aksi</span>
                   </div>
 

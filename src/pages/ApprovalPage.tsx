@@ -341,10 +341,29 @@ export const ApprovalPage: React.FC = () => {
                       : 'FTI - 3.14 (IFP)'}
                   </span>
                   <span className="w-[20%] min-w-[160px] text-[#727272]">
-                    {booking.date ? `${booking.date}, ` : '2026-11-25, '}
-                    {booking.start_at
-                      ? `${booking.start_at.slice(11, 16)} - ${booking.end_at?.slice(11, 16)}`
-                      : `${String(booking.daily_start_hour || 7).padStart(2, '0')}:00 - ${String(booking.daily_end_hour || 9).padStart(2, '0')}:00`}
+                    {booking.end_date && booking.end_date !== booking.date ? (
+                      <>
+                        <span className="font-semibold text-[#0B0C0F] block leading-tight">
+                          {booking.date} s/d {booking.end_date}
+                        </span>
+                        <span className="text-[12px] text-[#727272] block leading-tight mt-0.5">
+                          {booking.start_at
+                            ? `${booking.start_at.slice(11, 16)} - ${booking.end_at?.slice(11, 16)} WIB`
+                            : `${String(booking.daily_start_hour || 7).padStart(2, '0')}:00 - ${String(booking.daily_end_hour || 9).padStart(2, '0')}:00 WIB`}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium text-[#0B0C0F] block leading-tight">
+                          {booking.date || '2026-11-25'}
+                        </span>
+                        <span className="text-[12px] text-[#727272] block leading-tight mt-0.5">
+                          {booking.start_at
+                            ? `${booking.start_at.slice(11, 16)} - ${booking.end_at?.slice(11, 16)} WIB`
+                            : `${String(booking.daily_start_hour || 7).padStart(2, '0')}:00 - ${String(booking.daily_end_hour || 9).padStart(2, '0')}:00 WIB`}
+                        </span>
+                      </>
+                    )}
                   </span>
                   <span className="w-[15%] min-w-[120px]">
                     {booking.on_behalf_of
@@ -454,8 +473,11 @@ export const ApprovalPage: React.FC = () => {
               </div>
               <div className="flex justify-between py-1 border-b border-slate-50">
                 <span className="text-slate-500">Waktu Pelaksanaan:</span>
-                <span className="font-medium text-[#0B0C0F]">
-                  {selectedBooking.date || (selectedBooking.start_at ? selectedBooking.start_at.slice(0, 10) : '2026-11-26')},{' '}
+                <span className="font-medium text-[#0B0C0F] text-right">
+                  {selectedBooking.end_date && selectedBooking.end_date !== selectedBooking.date
+                    ? `${selectedBooking.date} s/d ${selectedBooking.end_date}`
+                    : selectedBooking.date || (selectedBooking.start_at ? selectedBooking.start_at.slice(0, 10) : '2026-11-26')}
+                  ,{' '}
                   {selectedBooking.start_at
                     ? selectedBooking.start_at.slice(11, 16)
                     : `${String(selectedBooking.daily_start_hour || 7).padStart(2, '0')}:00`}{' '}
@@ -480,7 +502,8 @@ export const ApprovalPage: React.FC = () => {
                   <FileText className="w-8 h-8 text-[#093697] shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-xs text-[#0B0C0F] truncate">
-                      Surat_Pengajuan_{selectedBooking.user?.number_id || selectedBooking.user?.nim || 'UII'}.pdf
+                      {selectedBooking.permit_docs?.[0] ||
+                        `Surat_Pengajuan_${selectedBooking.user?.number_id || selectedBooking.user?.nim || 'UII'}.pdf`}
                     </p>
                     <p className="text-[11px] text-slate-500">
                       Terverifikasi tanda tangan digital BEM/DPM
@@ -755,7 +778,8 @@ export const ApprovalPage: React.FC = () => {
                     Dokumen Surat Izin Kegiatan
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Surat_Pengajuan_{previewBooking.user?.number_id || previewBooking.user?.nim || 'UII'}.pdf
+                    {previewBooking.permit_docs?.[0] ||
+                      `Surat_Pengajuan_${previewBooking.user?.number_id || previewBooking.user?.nim || 'UII'}.pdf`}
                   </p>
                 </div>
               </div>

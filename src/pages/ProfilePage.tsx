@@ -38,14 +38,20 @@ export const ProfilePage: React.FC = () => {
     const roomName = r?.name || 'Ruang';
 
     // Format tanggal DD/MM/YY
-    let dateStr = '21/11/26';
-    if (b.date) {
-      if (b.date.includes('-')) {
-        const [y, m, d] = b.date.split('-');
-        dateStr = `${d}/${m}/${y.slice(-2)}`;
-      } else {
-        dateStr = b.date;
+    const formatDmy = (rawDate?: string): string => {
+      if (!rawDate) return '';
+      if (rawDate.includes('-')) {
+        const [y, m, d] = rawDate.split('-');
+        return `${d}/${m}/${y.slice(-2)}`;
       }
+      return rawDate;
+    };
+
+    let dateStr = '21/11/26';
+    if (b.end_date && b.end_date !== b.date) {
+      dateStr = `${formatDmy(b.date)} - ${formatDmy(b.end_date)}`;
+    } else if (b.date) {
+      dateStr = formatDmy(b.date);
     } else if (b.start_at) {
       const d = new Date(b.start_at);
       dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(

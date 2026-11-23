@@ -78,6 +78,7 @@ const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
 // Persistent room map key
 const ROOM_MAP_KEY = 'uiiruang_booking_room_map';
+const DATES_MAP_KEY = 'uiiruang_booking_dates_map';
 
 export const getBookingRoomMap = (): Record<number, { room_id: number; room: Room }> => {
   try {
@@ -105,6 +106,30 @@ export const saveBookingRoomMapping = (bookingId: number, roomId: number, room: 
     localStorage.setItem(ROOM_MAP_KEY, JSON.stringify(currentMap));
   } catch (err) {
     console.warn('Failed to save booking room mapping:', err);
+  }
+};
+
+export const getBookingDatesMap = (): Record<number, { date: string; end_date?: string; fileName?: string }> => {
+  try {
+    const saved = localStorage.getItem(DATES_MAP_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+};
+
+export const saveBookingDatesMapping = (
+  bookingId: number,
+  date: string,
+  endDate?: string,
+  fileName?: string
+) => {
+  try {
+    const currentMap = getBookingDatesMap();
+    currentMap[bookingId] = { date, end_date: endDate, fileName };
+    localStorage.setItem(DATES_MAP_KEY, JSON.stringify(currentMap));
+  } catch (err) {
+    console.warn('Failed to save booking dates mapping:', err);
   }
 };
 
@@ -155,8 +180,25 @@ export const normalizeBookingItem = (b: any, roomsList: Room[]): Booking => {
     }
   }
 
-  // Normalisasi tanggal agar selalu valid
-  const dateStr = b.date || (b.start_at ? b.start_at.slice(0, 10) : '');
+  // 2. Cek tag dates: [DATES:startDate:endDate]
+  const datesMap = getBookingDatesMap();
+  let dateStr = b.date || (b.start_at ? b.start_at.slice(0, 10) : '');
+  let endDateStr = b.end_date || (b.end_at ? b.end_at.slice(0, 10) : dateStr);
+  let permitDocs = b.permit_docs || [];
+
+  const dateTagMatch = cleanPurpose.match(/^\[DATES:([^:]+):([^\]]+)\]\s*(.*)$/);
+  if (dateTagMatch) {
+    dateStr = dateTagMatch[1];
+    endDateStr = dateTagMatch[2];
+    cleanPurpose = dateTagMatch[3];
+    saveBookingDatesMapping(b.id, dateStr, endDateStr);
+  } else if (datesMap[b.id]) {
+    if (datesMap[b.id].date) dateStr = datesMap[b.id].date;
+    if (datesMap[b.id].end_date) endDateStr = datesMap[b.id].end_date;
+    if (datesMap[b.id].fileName && permitDocs.length === 0) {
+      permitDocs = [datesMap[b.id].fileName!];
+    }
+  }
 
   // Normalisasi start_hour dan end_hour
   const startH =
@@ -170,6 +212,8 @@ export const normalizeBookingItem = (b: any, roomsList: Room[]): Booking => {
     room: targetRoom,
     purpose: cleanPurpose,
     date: dateStr,
+    end_date: endDateStr,
+    permit_docs: permitDocs,
     daily_start_hour: startH,
     daily_end_hour: endH,
   };
@@ -421,10 +465,14 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       formData.append('start_hour', String(data.daily_start_hour));
       formData.append('end_hour', String(data.daily_end_hour));
 
-      // Embed tag ruangan agar persisten di database server backend
-      const taggedPurpose = room
-        ? `[ROOM:${room.id}:${room.building}:${room.name}] ${data.purpose}`
-        : data.purpose;
+      // Embed tag ruangan & tanggal agar persisten di database server backend
+      let taggedPurpose = data.purpose;
+      if (data.end_date && data.end_date !== data.date) {
+        taggedPurpose = `[DATES:${data.date}:${data.end_date}] ${taggedPurpose}`;
+      }
+      if (room) {
+        taggedPurpose = `[ROOM:${room.id}:${room.building}:${room.name}] ${taggedPurpose}`;
+      }
       formData.append('purpose', taggedPurpose);
 
       if (data.organization_id) {
@@ -447,6 +495,12 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (room) {
         saveBookingRoomMapping(createdId, data.room_id, room);
       }
+      saveBookingDatesMapping(
+        createdId,
+        data.date,
+        data.end_date || data.date,
+        file ? file.name : (data.permit_docs?.[0] || undefined)
+      );
 
       const createdBooking: Booking = {
         ...data,
@@ -480,6 +534,12 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (room) {
         saveBookingRoomMapping(fallbackId, data.room_id, room);
       }
+      saveBookingDatesMapping(
+        fallbackId,
+        data.date,
+        data.end_date || data.date,
+        file ? file.name : (data.permit_docs?.[0] || undefined)
+      );
       const newBooking: Booking = {
         ...data,
         id: fallbackId,
@@ -541,6 +601,11 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (room) {
         saveBookingRoomMapping(createdId, data.room_id, room);
       }
+      saveBookingDatesMapping(
+        createdId,
+        data.date,
+        data.end_date || data.date
+      );
 
       const newBooking: Booking = {
         id: createdId,
