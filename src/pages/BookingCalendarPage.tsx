@@ -345,10 +345,15 @@ export const BookingCalendarPage: React.FC = () => {
     setFormError(null);
   };
 
+  // Helper pencocokan fakultas/gedung secara fleksibel
+  const isFacultyMatch = (r: Room, fac: string) => {
+    if (!fac || fac === 'Semua') return true;
+    return r.faculty === fac || r.building === fac || r.building?.includes(fac);
+  };
+
   // Filter daftar ruangan
   const filteredRooms = rooms.filter((r) => {
-    const matchesFaculty =
-      !selectedFaculty || selectedFaculty === 'Semua' ? true : r.building === selectedFaculty;
+    const matchesFaculty = isFacultyMatch(r, selectedFaculty || 'Semua');
     const matchesSearch =
       r.name.toLowerCase().includes(roomSearchQuery.toLowerCase()) ||
       (r.type_name && r.type_name.toLowerCase().includes(roomSearchQuery.toLowerCase())) ||
@@ -356,14 +361,14 @@ export const BookingCalendarPage: React.FC = () => {
     return matchesFaculty && matchesSearch;
   });
 
-  // Hitungan tab fakultas dinamis (total 20)
+  // Hitungan tab fakultas dinamis dari database backend
   const countAll = rooms.length;
-  const countFTI = rooms.filter((r) => r.building === 'FTI').length;
-  const countFMIPA = rooms.filter((r) => r.building === 'FMIPA').length;
-  const countFPI = rooms.filter((r) => r.building === 'FPI').length;
-  const countFK = rooms.filter((r) => r.building === 'FK').length;
-  const countFH = rooms.filter((r) => r.building === 'FH').length;
-  const countGKU = rooms.filter((r) => r.building === 'GKU').length;
+  const countFTI = rooms.filter((r) => isFacultyMatch(r, 'FTI')).length;
+  const countFMIPA = rooms.filter((r) => isFacultyMatch(r, 'FMIPA')).length;
+  const countFPI = rooms.filter((r) => isFacultyMatch(r, 'FPI')).length;
+  const countFK = rooms.filter((r) => isFacultyMatch(r, 'FK')).length;
+  const countFH = rooms.filter((r) => isFacultyMatch(r, 'FH')).length;
+  const countGKU = rooms.filter((r) => isFacultyMatch(r, 'GKU')).length;
 
   const handleSelectRoom = (room: Room) => {
     setSelectedRoom(room);

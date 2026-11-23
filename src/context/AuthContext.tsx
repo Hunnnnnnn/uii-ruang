@@ -26,9 +26,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [token, setToken] = useState<string | null>(() => {
+    return sessionStorage.getItem('uiiruang_token');
+  });
+
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const savedToken = sessionStorage.getItem('uiiruang_token');
     const saved = sessionStorage.getItem('uiiruang_user');
-    if (saved) {
+    if (saved && savedToken) {
       try {
         return JSON.parse(saved);
       } catch (e) {
@@ -38,14 +43,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   });
 
-  const [token, setToken] = useState<string | null>(() => {
-    return sessionStorage.getItem('uiiruang_token');
-  });
+  // Listener untuk session expired dari axios interceptor (401)
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setToken(null);
+      setCurrentUser(null);
+    };
+    window.addEventListener('uiiruang_auth_expired', handleAuthExpired);
+    return () => window.removeEventListener('uiiruang_auth_expired', handleAuthExpired);
+  }, []);
 
   // Sinkronisasi status user dengan backend jika token tersimpan
   useEffect(() => {
     const savedToken = sessionStorage.getItem('uiiruang_token');
-    if (savedToken && !currentUser) {
+    if (savedToken) {
       authApi
         .getMe()
         .then((res) => {

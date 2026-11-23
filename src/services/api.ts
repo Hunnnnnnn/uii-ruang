@@ -31,6 +31,10 @@ apiClient.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       sessionStorage.removeItem('uiiruang_token');
+      sessionStorage.removeItem('uiiruang_user');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('uiiruang_auth_expired'));
+      }
     }
     return Promise.reject(error);
   }
