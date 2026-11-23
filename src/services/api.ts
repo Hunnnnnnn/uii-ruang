@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { User, Room, RoomType, Booking, DamageReport } from '../types';
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://100.73.128.8:8085/api/v1';
+  import.meta.env.VITE_API_BASE_URL || 'https://backend.uiiruang.my.id/';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -204,11 +204,22 @@ export interface CreditScoreResponse {
 export interface ScoreLog {
   id: number;
   user_id: number;
+  booking_id?: number | null;
+  damage_report_id?: number | null;
+  event_type?: string;
+  points_delta?: number;
+  score_after?: number;
   delta?: number;
   change?: number;
   current_score?: number;
-  reason: string;
-  created_at: string;
+  note?: string;
+  reason?: string;
+  created_by?: number | null;
+  creator?: {
+    id: number;
+    name: string;
+  };
+  created_at: string | null;
 }
 
 export const scoreApi = {
@@ -225,8 +236,16 @@ export const scoreApi = {
 };
 
 export const adminUsersApi = {
-  getUsers: async (): Promise<User[]> => {
-    const response = await apiClient.get<{ data?: User[] } | User[]>('/admin/users');
+  getUsers: async (params?: {
+    role?: string;
+    status?: string;
+    search?: string;
+    page?: number;
+    per_page?: number;
+  }): Promise<User[]> => {
+    const response = await apiClient.get<{ data?: User[] } | User[]>('/admin/users', {
+      params,
+    });
     if (Array.isArray(response.data)) return response.data;
     if (response.data && Array.isArray(response.data.data)) return response.data.data;
     return [];
@@ -235,19 +254,23 @@ export const adminUsersApi = {
     const response = await apiClient.get<{ data: User }>(`/admin/users/${id}`);
     return response.data.data;
   },
-  adjustScore: async (id: number, delta: number, reason: string): Promise<{ message: string }> => {
+  adjustScore: async (id: number, new_score: number, reason: string): Promise<{ message: string }> => {
     const response = await apiClient.post<{ message: string }>(`/admin/users/${id}/score-adjust`, {
-      delta,
+      new_score,
       reason,
     });
     return response.data;
   },
-  unbanUser: async (id: number): Promise<{ message: string }> => {
-    const response = await apiClient.post<{ message: string }>(`/admin/users/${id}/unban`);
+  unbanUser: async (id: number, reason: string = 'Banned dicabut setelah verifikasi admin.'): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>(`/admin/users/${id}/unban`, {
+      reason,
+    });
     return response.data;
   },
-  getUserScoreLogs: async (id: number): Promise<ScoreLog[]> => {
-    const response = await apiClient.get<{ data?: ScoreLog[] } | ScoreLog[]>(`/admin/users/${id}/score-logs`);
+  getUserScoreLogs: async (id: number, page: number = 1, per_page: number = 20): Promise<ScoreLog[]> => {
+    const response = await apiClient.get<{ data?: ScoreLog[] } | ScoreLog[]>(`/admin/users/${id}/score-logs`, {
+      params: { page, per_page },
+    });
     if (Array.isArray(response.data)) return response.data;
     if (response.data && Array.isArray(response.data.data)) return response.data.data;
     return [];
@@ -282,6 +305,11 @@ export const bookingsApi = {
 
   cancelBooking: async (id: number): Promise<{ message: string }> => {
     const response = await apiClient.post<{ message: string }>(`/bookings/${id}/cancel`);
+    return response.data;
+  },
+
+  confirmBooking: async (id: number): Promise<{ message: string; data?: Booking }> => {
+    const response = await apiClient.post<{ message: string; data?: Booking }>(`/bookings/${id}/confirm`);
     return response.data;
   },
 };
@@ -339,6 +367,24 @@ export const adminBookingsApi = {
       payload
     );
     return response.data;
+  },
+
+  markAttendance: async (
+    id: number,
+    status: 'hadir' | 'tidak_hadir'
+  ): Promise<{ message: string; data?: Booking }> => {
+    const response = await apiClient.post<{ message: string; data?: Booking }>(
+      `/admin/bookings/${id}/attendance`,
+      { status }
+    );
+    return response.data;
+  },
+
+  getTodayAttendance: async (): Promise<Booking[]> => {
+    const response = await apiClient.get<{ data?: Booking[] } | Booking[]>('/admin/attendance/today');
+    if (Array.isArray(response.data)) return response.data;
+    if (response.data && Array.isArray(response.data.data)) return response.data.data;
+    return [];
   },
 };
 

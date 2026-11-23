@@ -45,6 +45,16 @@ export interface Room {
   type_name?: string;
 }
 
+export interface AttendanceRecord {
+  id: number;
+  booking_id: number;
+  status: 'hadir' | 'tidak_hadir' | 'tidak_terverifikasi';
+  marked_by?: number | null;
+  marked_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Booking {
   id: number;
   user_id: number;
@@ -68,6 +78,7 @@ export interface Booking {
   confirmed_at?: string;
   on_behalf_of?: string | null;
   permit_docs?: string[];
+  attendance_record?: AttendanceRecord | null;
   created_at: string;
 }
 

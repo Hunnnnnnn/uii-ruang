@@ -15,8 +15,16 @@ import { DatePill } from '../components/layout/DatePill';
 import { Booking } from '../types';
 
 export const ApprovalPage: React.FC = () => {
-  const { bookings, approveBooking, rejectBooking, createAdminBooking, moveBooking, rooms } =
-    useBooking();
+  const {
+    bookings,
+    approveBooking,
+    rejectBooking,
+    createAdminBooking,
+    moveBooking,
+    rooms,
+    markAttendance,
+    refreshBookings,
+  } = useBooking();
 
   const [activeTab, setActiveTab] = useState<'semua' | 'diajukan' | 'disetujui' | 'ditolak'>('semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -151,6 +159,43 @@ export const ApprovalPage: React.FC = () => {
       setMoveBookingTarget(null);
       setMoveSuccess('Ruangan booking berhasil dipindahkan!');
       setTimeout(() => setMoveSuccess(null), 3500);
+    }
+  };
+
+  const handleMarkAttendance = async (id: number, status: 'hadir' | 'tidak_hadir') => {
+    const confirmText =
+      status === 'hadir'
+        ? 'Tandai mahasiswa HADIR (Check-in) pada peminjaman ini? Peminjam akan mendapat apresiasi +3 poin skor kepatuhan.'
+        : 'Tandai mahasiswa TIDAK HADIR (No-Show) pada peminjaman ini? Peminjam akan dikenai sanksi penalti no-show -25 poin skor.';
+    if (!window.confirm(confirmText)) return;
+
+    const res = await markAttendance(id, status);
+    if (!res.success) {
+      setActionError(res.message || 'Gagal mencatat kehadiran peminjaman.');
+    } else {
+      setMoveSuccess(
+        status === 'hadir'
+          ? 'Check-in kehadiran peminjam berhasil dicatat (+3 poin kepatuhan)!'
+          : 'Status ketidakhadiran (No-Show) berhasil dicatat (-25 poin penalti).'
+      );
+      setTimeout(() => setMoveSuccess(null), 3500);
+      if (detailModalOpen && selectedBooking && selectedBooking.id === id) {
+        setSelectedBooking((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: status === 'tidak_hadir' ? 'selesai' : prev.status,
+                attendance_record: {
+                  id: Date.now(),
+                  booking_id: id,
+                  status,
+                  marked_at: new Date().toISOString(),
+                },
+              }
+            : null
+        );
+      }
+      await refreshBookings();
     }
   };
 
@@ -328,10 +373,26 @@ export const ApprovalPage: React.FC = () => {
                   key={booking.id}
                   className="min-h-[56px] py-2 flex items-center px-6 font-['Poppins'] text-[13px] text-[#0B0C0F] hover:bg-slate-50 transition"
                 >
-                  <span className="w-[15%] min-w-[120px] font-medium">
-                    {booking.on_behalf_of
-                      ? 'Dosen'
-                      : booking.user?.number_id || booking.user?.nim || '24523014'}
+                  <span className="w-[15%] min-w-[120px] font-medium flex items-center gap-1.5 flex-wrap">
+                    <span>
+                      {booking.on_behalf_of
+                        ? 'Dosen'
+                        : booking.user?.number_id || booking.user?.nim || '24523014'}
+                    </span>
+                    {booking.user?.credit_score !== undefined && (
+                      <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                          booking.user.credit_score >= 80
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : booking.user.credit_score >= 60
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}
+                        title={`Credit Score: ${booking.user.credit_score}`}
+                      >
+                        {booking.user.credit_score}
+                      </span>
+                    )}
                   </span>
                   <span className="w-[18%] min-w-[150px]">
                     {booking.room
@@ -410,14 +471,40 @@ export const ApprovalPage: React.FC = () => {
                         </button>
                       </>
                     ) : booking.status === 'disetujui' || booking.status === 'terkonfirmasi' ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="bg-[#14926F] text-white px-2.5 py-1.5 rounded-[6px] text-[12px] font-medium flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Disetujui</span>
-                        </span>
+                      <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                        {booking.attendance_record?.status === 'hadir' ? (
+                          <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-1 rounded-[6px] text-[11px] font-semibold flex items-center gap-1 shadow-2xs">
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            <span>Hadir</span>
+                          </span>
+                        ) : booking.attendance_record?.status === 'tidak_hadir' ? (
+                          <span className="bg-rose-100 text-rose-800 border border-rose-200 px-2 py-1 rounded-[6px] text-[11px] font-semibold flex items-center gap-1 shadow-2xs">
+                            <X className="w-3 h-3 text-rose-600" />
+                            <span>No-Show</span>
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleMarkAttendance(booking.id, 'hadir')}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded-[6px] text-[11px] font-medium flex items-center gap-1 transition shadow-2xs cursor-pointer"
+                              title="Check-in Peminjam (Tandai Hadir +3 Poin)"
+                            >
+                              <Check className="w-3 h-3" />
+                              <span>Check-in</span>
+                            </button>
+                            <button
+                              onClick={() => handleMarkAttendance(booking.id, 'tidak_hadir')}
+                              className="border border-rose-300 text-rose-700 hover:bg-rose-50 px-2 py-1 rounded-[6px] text-[11px] font-medium flex items-center gap-1 transition shadow-2xs cursor-pointer"
+                              title="Tandai Tidak Hadir (No-Show Penalti -25)"
+                            >
+                              <X className="w-3 h-3" />
+                              <span>No-Show</span>
+                            </button>
+                          </>
+                        )}
                         <button
                           onClick={() => handleOpenMove(booking)}
-                          className="bg-blue-50 border border-blue-200 text-[#093697] hover:bg-blue-100 px-2 py-1.5 rounded-[6px] text-[11.5px] font-medium flex items-center gap-1 transition shadow-2xs cursor-pointer"
+                          className="bg-blue-50 border border-blue-200 text-[#093697] hover:bg-blue-100 px-2 py-1 rounded-[6px] text-[11px] font-medium flex items-center gap-1 transition shadow-2xs cursor-pointer"
                           title="Pindahkan ke Ruangan Lain (Move Room - BUG_014)"
                         >
                           <ArrowRightLeft className="w-3 h-3" />
@@ -461,6 +548,28 @@ export const ApprovalPage: React.FC = () => {
                   {selectedBooking.user?.number_id || selectedBooking.user?.nim} ({selectedBooking.user?.name})
                 </span>
               </div>
+              {selectedBooking.user?.credit_score !== undefined && (
+                <div className="flex justify-between py-1 border-b border-slate-50 items-center">
+                  <span className="text-slate-500">Credit Score:</span>
+                  <span
+                    className={`font-semibold text-xs px-2.5 py-0.5 rounded-full ${
+                      selectedBooking.user.credit_score >= 80
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : selectedBooking.user.credit_score >= 60
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-rose-100 text-rose-800'
+                    }`}
+                  >
+                    {selectedBooking.user.credit_score} Poin (
+                    {selectedBooking.user.credit_score >= 80
+                      ? 'Aktif'
+                      : selectedBooking.user.credit_score >= 60
+                      ? 'Peringatan'
+                      : 'Banned'}
+                    )
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between py-1 border-b border-slate-50">
                 <span className="text-slate-500">Ruangan:</span>
                 <span className="font-medium text-[#093697]">
@@ -519,6 +628,50 @@ export const ApprovalPage: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Status Kehadiran & Check-in Hari H (FR-10) */}
+              {(selectedBooking.status === 'disetujui' || selectedBooking.status === 'terkonfirmasi') && (
+                <div className="pt-2">
+                  <span className="text-slate-500 block mb-2 font-medium">Status Kehadiran Hari H:</span>
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      {selectedBooking.attendance_record?.status === 'hadir' ? (
+                        <div className="flex items-center gap-1.5 text-emerald-700">
+                          <Check className="w-4 h-4 font-bold" />
+                          <span className="font-semibold text-xs">Peminjam Hadir (Check-in Terverifikasi)</span>
+                        </div>
+                      ) : selectedBooking.attendance_record?.status === 'tidak_hadir' ? (
+                        <div className="flex items-center gap-1.5 text-rose-700">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="font-semibold text-xs">Peminjam Tidak Hadir (No-Show Penalti -25)</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-500 font-medium">Belum diverifikasi kehadiran oleh admin/petugas</span>
+                      )}
+                    </div>
+                    {!selectedBooking.attendance_record && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleMarkAttendance(selectedBooking.id, 'hadir')}
+                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium flex items-center gap-1 transition shadow-xs cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Check-in Hadir</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMarkAttendance(selectedBooking.id, 'tidak_hadir')}
+                          className="px-3 py-1 bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-lg text-xs font-medium flex items-center gap-1 transition cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Tandai No-Show</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">

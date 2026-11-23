@@ -14,6 +14,7 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { ApprovalPage } from './pages/ApprovalPage';
 import { DamageReportPage } from './pages/DamageReportPage';
 import { AdminProfilePage } from './pages/AdminProfilePage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
 
 /**
  * Pengalihan Route Root (/):
@@ -139,6 +140,16 @@ export const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRole="admin">
             <AdminLayout>
               <DamageReportPage />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <AdminLayout>
+              <AdminUsersPage />
             </AdminLayout>
           </ProtectedRoute>
         }

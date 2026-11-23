@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Booking, Room, DamageReport, BookingStatus } from '../types';
 import { useAuth } from './AuthContext';
+import { getConfirmWindowState } from '../lib/bookingStatus';
 import {
   roomsApi,
   bookingsApi,
@@ -65,6 +66,11 @@ interface BookingContextType {
   cancelBooking: (
     bookingId: number,
     reason?: string
+  ) => Promise<{ success: boolean; message?: string }>;
+  confirmBooking: (bookingId: number) => Promise<{ success: boolean; message?: string }>;
+  markAttendance: (
+    bookingId: number,
+    status: 'hadir' | 'tidak_hadir'
   ) => Promise<{ success: boolean; message?: string }>;
   addDamageReport: (reportData: {
     roomId: number;
@@ -771,6 +777,72 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return { success: true };
   };
 
+  const confirmBooking = async (
+    bookingId: number
+  ): Promise<{ success: boolean; message?: string }> => {
+    try {
+      // Validasi jendela waktu H-3 sesuai aturan BR-13 & FR-09
+      const targetBooking = bookings.find((b) => b.id === bookingId);
+      if (targetBooking) {
+        const windowInfo = getConfirmWindowState(targetBooking);
+        if (windowInfo.state === 'not_opened') {
+          return {
+            success: false,
+            message: `Jendela konfirmasi belum dibuka. Konfirmasi kehadiran (Self Check-in) baru dapat dilakukan pada H-3 (mulai ${windowInfo.formattedOpenDate} WIB).`,
+          };
+        }
+        if (windowInfo.state === 'closed') {
+          return {
+            success: false,
+            message: 'Batas waktu konfirmasi kehadiran telah berakhir (melewati deadline H-2).',
+          };
+        }
+      }
+
+      const res = await bookingsApi.confirmBooking(bookingId);
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, status: 'terkonfirmasi' } : b))
+      );
+      return { success: true, message: res.message || 'Peminjaman berhasil dikonfirmasi!' };
+    } catch (e: any) {
+      console.error('Error confirming booking:', e);
+      const msg =
+        e?.response?.data?.message ||
+        'Gagal mengonfirmasi peminjaman. Pastikan waktu berada dalam jendela H-3.';
+      return { success: false, message: msg };
+    }
+  };
+
+  const markAttendance = async (
+    bookingId: number,
+    status: 'hadir' | 'tidak_hadir'
+  ): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await adminBookingsApi.markAttendance(bookingId, status);
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === bookingId
+            ? {
+                ...b,
+                status: status === 'tidak_hadir' ? 'selesai' : b.status,
+                attendance_record: {
+                  id: Date.now(),
+                  booking_id: bookingId,
+                  status,
+                  marked_at: new Date().toISOString(),
+                },
+              }
+            : b
+        )
+      );
+      return { success: true, message: res.message || 'Kehadiran berhasil dicatat.' };
+    } catch (e: any) {
+      console.error('Error marking attendance:', e);
+      const msg = e?.response?.data?.message || 'Gagal mencatat kehadiran peminjaman.';
+      return { success: false, message: msg };
+    }
+  };
+
   const addDamageReport = async (reportData: {
     roomId: number;
     bookingId?: number;
@@ -874,6 +946,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         rejectBooking,
         moveBooking,
         cancelBooking,
+        confirmBooking,
+        markAttendance,
         addDamageReport,
         resolveDamageReport,
         checkConflict,

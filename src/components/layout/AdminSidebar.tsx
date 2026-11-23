@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LogOut, Settings, X, UserSearch } from 'lucide-react';
+import { LogOut, Settings, X, UserSearch, Users } from 'lucide-react';
 import iconDashboard from '../../assets/icon_dashboard.svg';
 import iconCalendar from '../../assets/icon_calendar.svg';
 import iconWarning from '../../assets/icon_warning.svg';
@@ -159,6 +159,35 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isMobileOpen = false
                   />
                   <span className="font-['Poppins'] text-[14.5px] font-normal leading-normal whitespace-nowrap">
                     Laporan Kerusakan
+                  </span>
+                </div>
+              </>
+            )}
+          </NavLink>
+
+          {/* 4. Pengguna & Skor (Layar A8 Tech Spec FR-11) */}
+          <NavLink
+            to="/admin/users"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center h-[49px] w-full relative transition-all ${
+                isActive ? 'text-[#093697]' : 'text-[#BABABA] hover:text-[#093697]'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-[#093697] rounded-r-[8px]" />
+                )}
+                <div className="flex items-center gap-[14px] pl-6 pr-4">
+                  <Users
+                    className={`w-[22px] h-[22px] shrink-0 transition-colors ${
+                      isActive ? 'text-[#093697]' : 'text-[#BABABA]'
+                    }`}
+                  />
+                  <span className="font-['Poppins'] text-[14.5px] font-normal leading-normal whitespace-nowrap">
+                    Pengguna & Skor
                   </span>
                 </div>
               </>

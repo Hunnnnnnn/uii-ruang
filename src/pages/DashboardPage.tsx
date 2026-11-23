@@ -1,17 +1,23 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, CheckCircle2, AlertCircle, X, ShieldCheck } from 'lucide-react';
 import card1HeroImg from '../assets/card1_hero.png';
 import card2MedalSvg from '../assets/card2_medal.svg';
 import { DatePill } from '../components/layout/DatePill';
 import { useAuth } from '../context/AuthContext';
 import { useBooking } from '../context/BookingContext';
-import { getBookingTimeState } from '../lib/bookingStatus';
+import { getBookingTimeState, getConfirmWindowState } from '../lib/bookingStatus';
 import { Booking } from '../types';
 
 export const DashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const { rooms, bookings, refreshBookings, cancelBooking } = useBooking();
+  const { rooms, bookings, refreshBookings, cancelBooking, confirmBooking } = useBooking();
+
+  const [confirmFeedback, setConfirmFeedback] = useState<{
+    text: string;
+    type: 'success' | 'error';
+  } | null>(null);
+  const [isConfirmingId, setIsConfirmingId] = useState<number | null>(null);
 
   // Sinkronisasi status booking terbaru dari backend saat Dashboard dibuka
   useEffect(() => {
@@ -46,6 +52,51 @@ export const DashboardPage: React.FC = () => {
     return false;
   });
 
+  const handleConfirmSelfCheckin = async (id: number, bookingItem?: Booking) => {
+    try {
+      if (bookingItem) {
+        const windowInfo = getConfirmWindowState(bookingItem);
+        if (windowInfo.state === 'not_opened') {
+          setConfirmFeedback({
+            text: `Jendela konfirmasi belum dibuka. Self check-in baru dapat dilakukan pada H-3 (mulai ${windowInfo.formattedOpenDate} WIB).`,
+            type: 'error',
+          });
+          return;
+        }
+        if (windowInfo.state === 'closed') {
+          setConfirmFeedback({
+            text: 'Batas waktu konfirmasi H-3 telah lewat (melewati batas H-2).',
+            type: 'error',
+          });
+          return;
+        }
+      }
+
+      setIsConfirmingId(id);
+      const res = await confirmBooking(id);
+      if (res.success) {
+        setConfirmFeedback({
+          text: res.message || 'Peminjaman berhasil dikonfirmasi (Self Check-in berhasil)!',
+          type: 'success',
+        });
+        await refreshBookings();
+      } else {
+        setConfirmFeedback({
+          text: res.message || 'Gagal konfirmasi kehadiran. Pastikan waktu berada dalam jendela H-3.',
+          type: 'error',
+        });
+      }
+    } catch (err: any) {
+      setConfirmFeedback({
+        text: err?.response?.data?.message || 'Gagal melakukan konfirmasi self check-in.',
+        type: 'error',
+      });
+    } finally {
+      setIsConfirmingId(null);
+      setTimeout(() => setConfirmFeedback(null), 4500);
+    }
+  };
+
   const handleCancel = async (id: number, isApprovedBooking = false, bookingItem?: Booking) => {
     let confirmMsg = 'Apakah Anda yakin ingin membatalkan permohonan peminjaman ini?';
     if (isApprovedBooking && bookingItem) {
@@ -73,6 +124,30 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="bg-[#F5F8FF] min-h-screen w-full select-none">
+      {/* Toast Alert Feedback */}
+      {confirmFeedback && (
+        <div
+          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-lg border transition-all animate-in fade-in slide-in-from-top-4 ${
+            confirmFeedback.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              : 'bg-rose-50 text-rose-800 border-rose-200'
+          }`}
+        >
+          {confirmFeedback.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          )}
+          <span className="font-['Poppins'] text-[13.5px] font-medium">{confirmFeedback.text}</span>
+          <button
+            onClick={() => setConfirmFeedback(null)}
+            className="text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Full Screen Responsive Content Wrapper */}
       <div className="pt-5 sm:pt-6 lg:pt-8 px-4 sm:px-6 lg:px-12 pb-16 w-full">
         {/* Header Row: Full width with Title (left) & Date Pill (right) */}
@@ -210,6 +285,7 @@ export const DashboardPage: React.FC = () => {
                 const isPay = item.status === 'menunggu_bayar';
                 const timeState = getBookingTimeState(item);
                 const isOngoing = isApproved && timeState === 'in_progress';
+                const confirmWindow = getConfirmWindowState(item);
 
                 return (
                   <div
@@ -234,10 +310,35 @@ export const DashboardPage: React.FC = () => {
                             Sedang Digunakan
                           </span>
                         )}
-                        {isApproved && !isOngoing && (
+                        {item.status === 'disetujui' && !isOngoing && (
+                          <>
+                            {confirmWindow.state === 'open' && (
+                              <span className="shrink-0 bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0] px-3 py-1 rounded-full text-[12px] font-semibold flex items-center gap-1.5 shadow-2xs">
+                                <span className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse"></span>
+                                Konfirmasi Buka (H-3)
+                              </span>
+                            )}
+                            {confirmWindow.state === 'not_opened' && (
+                              <span
+                                className="shrink-0 bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1 rounded-full text-[12px] font-semibold flex items-center gap-1.5 shadow-2xs"
+                                title={`Jendela konfirmasi H-3 dibuka pada ${confirmWindow.formattedOpenDate} WIB`}
+                              >
+                                <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                Disetujui (Konfirmasi Buka H-3)
+                              </span>
+                            )}
+                            {confirmWindow.state === 'closed' && (
+                              <span className="shrink-0 bg-[#FEE2E2] text-[#991B1B] border border-[#FECACA] px-3 py-1 rounded-full text-[12px] font-semibold flex items-center gap-1.5 shadow-2xs">
+                                <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                                Konfirmasi Ditutup
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {item.status === 'terkonfirmasi' && !isOngoing && (
                           <span className="shrink-0 bg-[#DCFCE7] text-[#166534] border border-[#BBF7D0] px-3 py-1 rounded-full text-[12px] font-semibold flex items-center gap-1.5 shadow-2xs">
                             <span className="w-2 h-2 rounded-full bg-[#16A34A]"></span>
-                            Disetujui
+                            Terkonfirmasi
                           </span>
                         )}
                         {isPending && (
@@ -281,7 +382,47 @@ export const DashboardPage: React.FC = () => {
                           <span className="w-2 h-2 rounded-full bg-[#093697] animate-pulse"></span> Sedang Digunakan
                         </span>
                       )}
-                      {isApproved && !isOngoing && (
+                      {item.status === 'disetujui' && !isOngoing && (
+                        <div className="ml-auto flex items-center gap-2">
+                          {confirmWindow.state === 'open' ? (
+                            <button
+                              onClick={() => handleConfirmSelfCheckin(item.id, item)}
+                              disabled={isConfirmingId === item.id}
+                              className="bg-[#14926F] hover:bg-[#0E7A5C] text-white px-3 py-1 rounded-lg text-[11.5px] font-semibold flex items-center gap-1 transition shadow-2xs cursor-pointer disabled:opacity-50"
+                              title="Konfirmasi Kehadiran / Self Check-in H-3"
+                            >
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>{isConfirmingId === item.id ? 'Memproses...' : 'Self Check-in (H-3)'}</span>
+                            </button>
+                          ) : confirmWindow.state === 'not_opened' ? (
+                            <div className="flex flex-col items-end">
+                              <button
+                                disabled
+                                className="bg-slate-100 text-slate-400 border border-slate-200 px-2.5 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 cursor-not-allowed opacity-80"
+                                title={`Self check-in belum dibuka. Baru dapat diakses pada ${confirmWindow.formattedOpenDate} WIB.`}
+                              >
+                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                <span>Check-in (Buka H-3)</span>
+                              </button>
+                              <span className="text-[10px] text-slate-400 font-normal mt-0.5">
+                                Buka: {confirmWindow.formattedOpenDate}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-rose-600 text-[11px] font-medium">
+                              Batas H-2 Lewat
+                            </span>
+                          )}
+                          <button
+                            onClick={() => handleCancel(item.id, true, item)}
+                            className="text-rose-600 hover:text-rose-800 text-[11.5px] font-medium hover:underline cursor-pointer"
+                            title="Batalkan Peminjaman"
+                          >
+                            Batalkan
+                          </button>
+                        </div>
+                      )}
+                      {item.status === 'terkonfirmasi' && !isOngoing && (
                         <div className="ml-auto flex items-center gap-3">
                           <span className="text-[#166534] text-[11.5px] font-medium flex items-center gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Siap Dipakai
