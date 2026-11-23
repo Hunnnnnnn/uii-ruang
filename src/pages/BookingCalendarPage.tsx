@@ -3,7 +3,6 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   Calendar as CalendarIcon,
   AlertCircle,
   CheckCircle2,
@@ -108,9 +107,8 @@ export const BookingCalendarPage: React.FC = () => {
   // Form State Detail Peminjaman (Default ke hari ini, mendukung multi-day TC_BOOK_007)
   const [selectedDay, setSelectedDay] = useState<number>(todayDay);
   const [selectedEndDay, setSelectedEndDay] = useState<number>(todayDay);
-  const [startDate, setStartDate] = useState(
-    `${String(todayDay).padStart(2, '0')}/${String(calendarMonth + 1).padStart(2, '0')}/${calendarYear}`
-  );
+  const startDate = `${String(selectedDay).padStart(2, '0')}/${String(calendarMonth + 1).padStart(2, '0')}/${calendarYear}`;
+  const endDate = `${String(selectedEndDay).padStart(2, '0')}/${String(calendarMonth + 1).padStart(2, '0')}/${calendarYear}`;
   const [startTime, setStartTime] = useState('07:00');
   const [endTime, setEndTime] = useState('09:00');
   const [eventPurpose, setEventPurpose] = useState('');
@@ -297,9 +295,6 @@ export const BookingCalendarPage: React.FC = () => {
     if (targetDate < todayDate) return;
     if (isDayFull(day)) return;
 
-    const dayStr = day.toString().padStart(2, '0');
-    const mStr = String(calendarMonth + 1).padStart(2, '0');
-
     // Jika belum ada rentang (selectedDay === selectedEndDay) dan user klik tanggal setelahnya, jadikan rentang multi-day (TC_BOOK_007)
     if (selectedDay === selectedEndDay && day > selectedDay) {
       setSelectedEndDay(day);
@@ -307,7 +302,6 @@ export const BookingCalendarPage: React.FC = () => {
       // Set tanggal mulai baru dan reset tanggal selesai
       setSelectedDay(day);
       setSelectedEndDay(day);
-      setStartDate(`${dayStr}/${mStr}/${calendarYear}`);
     }
     setFormError(null);
   };
@@ -824,6 +818,11 @@ export const BookingCalendarPage: React.FC = () => {
                       </div>
                     );
                   })()}
+
+                  <p className="mt-4 text-[12px] text-[#727272] flex items-center gap-1.5 font-['Poppins']">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#093697] inline-block shrink-0" />
+                    <span>Pilih tanggal di kalender. Untuk peminjaman beberapa hari berturut-turut, klik tanggal awal lalu klik tanggal akhir.</span>
+                  </p>
                 </div>
 
                 {/* CARD 2: Dokumen Persyaratan */}
@@ -842,14 +841,13 @@ export const BookingCalendarPage: React.FC = () => {
                         <select
                           value={atasNama}
                           onChange={(e) => setAtasNama(e.target.value)}
-                          className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-white outline-none appearance-none cursor-pointer pr-10"
+                          className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-white outline-none cursor-pointer"
                         >
                           <option value="UKM atau Mahasiswa">UKM atau Mahasiswa</option>
                           <option value="Mahasiswa Individu">Mahasiswa Individu</option>
                           <option value="Himpunan Mahasiswa (HMTI)">Himpunan Mahasiswa (HMTI)</option>
                           <option value="Lembaga Eksekutif Mahasiswa (LEM)">LEM FTI UII</option>
                         </select>
-                        <ChevronDown className="w-4 h-4 text-[#727272] absolute right-3.5 top-3.5 pointer-events-none" />
                       </div>
                     </div>
 
@@ -1017,7 +1015,7 @@ export const BookingCalendarPage: React.FC = () => {
                               }
                               setFormError(null);
                             }}
-                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-white outline-none cursor-pointer pr-10"
+                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-white outline-none cursor-pointer"
                           >
                             {START_HOUR_OPTIONS.map((opt) => (
                               <option key={opt} value={opt}>
@@ -1025,7 +1023,6 @@ export const BookingCalendarPage: React.FC = () => {
                               </option>
                             ))}
                           </select>
-                          <ChevronDown className="w-4 h-4 text-[#727272] absolute right-3.5 top-3.5 pointer-events-none" />
                         </div>
                       </div>
                     </div>
@@ -1037,22 +1034,13 @@ export const BookingCalendarPage: React.FC = () => {
                           Tanggal Selesai
                         </label>
                         <div className="relative">
-                          <select
-                            value={selectedEndDay}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              setSelectedEndDay(val);
-                              setFormError(null);
-                            }}
-                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-white outline-none cursor-pointer pr-10 appearance-none"
-                          >
-                            {Array.from({ length: 30 - selectedDay + 1 }, (_, i) => selectedDay + i).map((d) => (
-                              <option key={d} value={d}>
-                                {String(d).padStart(2, '0')}/11/2026 {d === selectedDay ? '(1 Hari)' : `(${d - selectedDay + 1} Hari)`}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown className="w-4 h-4 text-[#727272] absolute right-3.5 top-3.5 pointer-events-none" />
+                          <input
+                            type="text"
+                            disabled
+                            value={endDate}
+                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-slate-50 outline-none cursor-default"
+                          />
+                          <CalendarIcon className="w-4 h-4 text-[#727272] absolute right-3.5 top-3.5 pointer-events-none" />
                         </div>
                       </div>
 
@@ -1067,7 +1055,7 @@ export const BookingCalendarPage: React.FC = () => {
                               setEndTime(e.target.value);
                               setFormError(null);
                             }}
-                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-white outline-none cursor-pointer pr-10"
+                            className="w-full border border-[#BABABA] rounded-[8px] px-3.5 py-2.5 text-[14px] text-[#0B0C0F] bg-white outline-none cursor-pointer"
                           >
                             {ALL_END_HOUR_OPTIONS
                               .filter(
@@ -1081,7 +1069,6 @@ export const BookingCalendarPage: React.FC = () => {
                                 </option>
                               ))}
                           </select>
-                          <ChevronDown className="w-4 h-4 text-[#727272] absolute right-3.5 top-3.5 pointer-events-none" />
                         </div>
                       </div>
                     </div>
