@@ -174,8 +174,79 @@ export const roomsApi = {
   },
 
   getOrganizations: async (): Promise<Array<{ id: number; name: string }>> => {
-    const response = await apiClient.get<{ data?: Array<{ id: number; name: string }> }>('/organizations');
-    return response.data?.data || [];
+    const response = await apiClient.get<{ data?: Array<{ id: number; name: string }> } | Array<{ id: number; name: string }>>('/organizations');
+    if (Array.isArray(response.data)) return response.data;
+    if (response.data && Array.isArray(response.data.data)) return response.data.data;
+    return [];
+  },
+};
+
+export const facultiesApi = {
+  getFaculties: async (): Promise<string[]> => {
+    const response = await apiClient.get<{ data?: string[] } | string[]>('/faculties');
+    if (Array.isArray(response.data)) return response.data;
+    if (response.data && Array.isArray((response.data as any).data)) return (response.data as any).data;
+    return [];
+  },
+};
+
+export interface CreditScoreResponse {
+  credit_score: number;
+  status: string;
+  booking_limit: number;
+  banned_at: string | null;
+}
+
+export interface ScoreLog {
+  id: number;
+  user_id: number;
+  delta?: number;
+  change?: number;
+  current_score?: number;
+  reason: string;
+  created_at: string;
+}
+
+export const scoreApi = {
+  getMyScore: async (): Promise<CreditScoreResponse> => {
+    const response = await apiClient.get<CreditScoreResponse>('/me/score');
+    return response.data;
+  },
+  getMyScoreLogs: async (): Promise<ScoreLog[]> => {
+    const response = await apiClient.get<{ data?: ScoreLog[] } | ScoreLog[]>('/me/score-logs');
+    if (Array.isArray(response.data)) return response.data;
+    if (response.data && Array.isArray(response.data.data)) return response.data.data;
+    return [];
+  },
+};
+
+export const adminUsersApi = {
+  getUsers: async (): Promise<User[]> => {
+    const response = await apiClient.get<{ data?: User[] } | User[]>('/admin/users');
+    if (Array.isArray(response.data)) return response.data;
+    if (response.data && Array.isArray(response.data.data)) return response.data.data;
+    return [];
+  },
+  getUserDetail: async (id: number): Promise<User> => {
+    const response = await apiClient.get<{ data: User }>(`/admin/users/${id}`);
+    return response.data.data;
+  },
+  adjustScore: async (id: number, delta: number, reason: string): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>(`/admin/users/${id}/score-adjust`, {
+      delta,
+      reason,
+    });
+    return response.data;
+  },
+  unbanUser: async (id: number): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>(`/admin/users/${id}/unban`);
+    return response.data;
+  },
+  getUserScoreLogs: async (id: number): Promise<ScoreLog[]> => {
+    const response = await apiClient.get<{ data?: ScoreLog[] } | ScoreLog[]>(`/admin/users/${id}/score-logs`);
+    if (Array.isArray(response.data)) return response.data;
+    if (response.data && Array.isArray(response.data.data)) return response.data.data;
+    return [];
   },
 };
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Camera,
   CheckCircle2,
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useBooking } from '../context/BookingContext';
 import { useAuth } from '../context/AuthContext';
-import { MOCK_FACULTIES } from '../data/mockData';
+import { facultiesApi } from '../services/api';
 import { Room } from '../types';
 import { DatePill } from '../components/layout/DatePill';
 
@@ -18,8 +18,31 @@ export const PengaduanFasilitasPage: React.FC = () => {
   const { rooms, damageReports, addDamageReport } = useBooking();
 
   const [level, setLevel] = useState<1 | 2>(1);
+  const [faculties, setFaculties] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedFaculty, setSelectedFaculty] = useState<string>('FTI');
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+
+  useEffect(() => {
+    facultiesApi
+      .getFaculties()
+      .then((res) => {
+        if (Array.isArray(res) && res.length > 0) {
+          setFaculties(res.map((f) => ({ id: f, name: f })));
+          if (!selectedFaculty && res.length > 0) setSelectedFaculty(res[0]);
+        } else {
+          const fromRooms = Array.from(
+            new Set(rooms.map((r) => r.faculty || r.building).filter(Boolean))
+          );
+          setFaculties(fromRooms.map((f) => ({ id: f, name: f })));
+        }
+      })
+      .catch(() => {
+        const fromRooms = Array.from(
+          new Set(rooms.map((r) => r.faculty || r.building).filter(Boolean))
+        );
+        setFaculties(fromRooms.map((f) => ({ id: f, name: f })));
+      });
+  }, [rooms]);
 
   // Form State
   const [category, setCategory] = useState('Proyektor / Display');
@@ -37,15 +60,19 @@ export const PengaduanFasilitasPage: React.FC = () => {
   // Lightbox Preview Modal State
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
+  // Helper untuk mencocokkan ruangan ke fakultas
+  const isRoomInFaculty = (r: Room, facId: string) =>
+    r.faculty === facId || r.building === facId || r.building?.includes(facId);
+
   // Rooms in selected faculty
-  const facultyRooms = rooms.filter((r) => r.building === selectedFaculty);
+  const facultyRooms = rooms.filter((r) => isRoomInFaculty(r, selectedFaculty));
 
   // Filter my damage reports
   const myReports = damageReports.filter((r) => r.reported_by === (currentUser?.id || 1));
 
   const handleSelectFaculty = (facId: string) => {
     setSelectedFaculty(facId);
-    const roomsInFac = rooms.filter((r) => r.building === facId);
+    const roomsInFac = rooms.filter((r) => isRoomInFaculty(r, facId));
     setSelectedRoom(roomsInFac[0] || null);
     setLevel(2);
   };
@@ -180,7 +207,7 @@ export const PengaduanFasilitasPage: React.FC = () => {
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 lg:gap-8">
-                {MOCK_FACULTIES.map((fac) => (
+                {faculties.map((fac) => (
                   <button
                     key={fac.id}
                     type="button"

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { MOCK_USERS } from '../data/mockData';
 import { authApi, getApiErrorMessage } from '../services/api';
 
 interface AuthContextType {
@@ -72,11 +71,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const switchRole = (role: UserRole) => {
     if (role === 'admin') {
-      const adminUser = MOCK_USERS[2];
+      const adminUser: User = {
+        id: 1,
+        name: 'Facility Admin',
+        email: 'admin@uii.ac.id',
+        role: 'admin',
+        credit_score: 100,
+        status: 'aktif',
+      };
       setCurrentUser(adminUser);
       sessionStorage.setItem('uiiruang_user', JSON.stringify(adminUser));
     } else {
-      const mhsUser = MOCK_USERS[0];
+      const mhsUser: User = {
+        id: 2,
+        name: 'Khoiru Rizal Kalam Ismail',
+        nim: '24523204',
+        number_id: '24523204',
+        email: '24523204@students.uii.ac.id',
+        role: 'mahasiswa',
+        credit_score: 100,
+        status: 'aktif',
+      };
       setCurrentUser(mhsUser);
       sessionStorage.setItem('uiiruang_user', JSON.stringify(mhsUser));
     }
@@ -102,25 +117,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.warn('Backend login error:', error);
       const errMsg = getApiErrorMessage(error);
-
-      // Graceful fallback ONLY for exact email match if network unreachable (BUG_003: Jangan pernah login sebagai akun lain)
-      if (
-        error.code === 'ERR_NETWORK' ||
-        error.message?.includes('Network Error') ||
-        error.message?.includes('timeout')
-      ) {
-        const cleanEmail = email.trim().toLowerCase();
-        const found = MOCK_USERS.find(
-          (u) => u.email.toLowerCase() === cleanEmail
-        );
-        if (found) {
-          console.warn('Network unreachable: fallback to matching mock user demo session');
-          setCurrentUser(found);
-          sessionStorage.setItem('uiiruang_user', JSON.stringify(found));
-          return { success: true, user: found };
-        }
-      }
-
       return { success: false, message: errMsg };
     }
   };

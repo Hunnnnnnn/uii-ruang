@@ -36,6 +36,7 @@ export interface Room {
   id: number;
   name: string;
   building: string; // FTI, FMIPA, FPI, FK, FH, GKU
+  faculty?: string;
   capacity: number;
   status: 'tersedia' | 'rusak';
   facilities?: string;
